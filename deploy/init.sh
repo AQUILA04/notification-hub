@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# init.sh — Bootstrap Contabo Notification Hub (shared-traefik)
+# init.sh — Bootstrap Contabo Notification Hub (shared-traefik + common-infra)
 # =============================================================================
 # Usage (CD via SSH):
 #   ./init.sh prod <frontend_image> <backend_image> [options...]
@@ -22,10 +22,9 @@ FORCE_UPDATE=false
 DB_USER=""
 DB_PASSWORD=""
 DB_NAME=""
-KEYCLOAK_ADMIN_PASSWORD=""
 APP_HOSTNAME_PROD=""
 API_HOSTNAME_PROD=""
-KEYCLOAK_HOSTNAME_PROD=""
+OIDC_ISSUER_URI=""
 MAIL_HOST=""
 MAIL_PORT=""
 MAIL_USER=""
@@ -33,6 +32,7 @@ MAIL_PASS=""
 MAIL_FROM=""
 ARTEMIS_PASSWORD=""
 REDIS_PASSWORD=""
+REDIS_DATABASE=""
 GHCR_USERNAME=""
 GHCR_TOKEN=""
 
@@ -52,10 +52,12 @@ while [[ "$#" -gt 0 ]]; do
     --db-user)                    DB_USER="$2";                    shift ;;
     --db-password)                DB_PASSWORD="$2";                shift ;;
     --db-name)                    DB_NAME="$2";                    shift ;;
-    --keycloak-admin-password)    KEYCLOAK_ADMIN_PASSWORD="$2";    shift ;;
     --app-hostname-prod)          APP_HOSTNAME_PROD="$2";          shift ;;
     --api-hostname-prod)          API_HOSTNAME_PROD="$2";          shift ;;
-    --keycloak-hostname-prod)     KEYCLOAK_HOSTNAME_PROD="$2";     shift ;;
+    --oidc-issuer-uri)            OIDC_ISSUER_URI="$2";            shift ;;
+    # Legacy aliases (ignored for Keycloak host/admin — auth is shared)
+    --keycloak-admin-password)    shift ;; # discarded
+    --keycloak-hostname-prod)     shift ;; # discarded
     --mail-host)                  MAIL_HOST="$2";                  shift ;;
     --mail-port)                  MAIL_PORT="$2";                  shift ;;
     --mail-user)                  MAIL_USER="$2";                  shift ;;
@@ -63,6 +65,7 @@ while [[ "$#" -gt 0 ]]; do
     --mail-from)                  MAIL_FROM="$2";                  shift ;;
     --artemis-password)           ARTEMIS_PASSWORD="$2";           shift ;;
     --redis-password)             REDIS_PASSWORD="$2";             shift ;;
+    --redis-database)             REDIS_DATABASE="$2";             shift ;;
     --ghcr-username)              GHCR_USERNAME="$2";              shift ;;
     --ghcr-token)                 GHCR_TOKEN="$2";                 shift ;;
     --github-repo)
@@ -113,10 +116,9 @@ if [[ ! -f "$SETUP_MARKER" ]]; then
   export NH_DB_USER="${DB_USER:-nhub}"
   export NH_DB_PASSWORD="${DB_PASSWORD:-}"
   export NH_DB_NAME="${DB_NAME:-notification_hub}"
-  export NH_KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-}"
   export NH_APP_HOSTNAME_PROD="${APP_HOSTNAME_PROD:-notification.optimizesolux.com}"
   export NH_API_HOSTNAME_PROD="${API_HOSTNAME_PROD:-notification-api.optimizesolux.com}"
-  export NH_KEYCLOAK_HOSTNAME_PROD="${KEYCLOAK_HOSTNAME_PROD:-notification-auth.optimizesolux.com}"
+  export NH_OIDC_ISSUER_URI="${OIDC_ISSUER_URI:-https://auth.optimizesolux.com/realms/notification-hub}"
   export NH_MAIL_HOST="${MAIL_HOST:-smtp.resend.com}"
   export NH_MAIL_PORT="${MAIL_PORT:-465}"
   export NH_MAIL_USER="${MAIL_USER:-resend}"
@@ -124,6 +126,7 @@ if [[ ! -f "$SETUP_MARKER" ]]; then
   export NH_MAIL_FROM="${MAIL_FROM:-Notification Hub <noreply@optimizesolux.com>}"
   export NH_ARTEMIS_PASSWORD="${ARTEMIS_PASSWORD:-}"
   export NH_REDIS_PASSWORD="${REDIS_PASSWORD:-}"
+  export NH_REDIS_DATABASE="${REDIS_DATABASE:-1}"
 
   bash "$DEPLOY_DIR/setup-server.sh"
   touch "$SETUP_MARKER"
@@ -142,10 +145,9 @@ export CT_UPDATE_ENV_SECRETS="${CT_UPDATE_ENV_SECRETS:-true}"
 export NH_DB_USER="${DB_USER:-}"
 export NH_DB_PASSWORD="${DB_PASSWORD:-}"
 export NH_DB_NAME="${DB_NAME:-}"
-export NH_KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-}"
 export NH_APP_HOSTNAME_PROD="${APP_HOSTNAME_PROD:-}"
 export NH_API_HOSTNAME_PROD="${API_HOSTNAME_PROD:-}"
-export NH_KEYCLOAK_HOSTNAME_PROD="${KEYCLOAK_HOSTNAME_PROD:-}"
+export NH_OIDC_ISSUER_URI="${OIDC_ISSUER_URI:-}"
 export NH_MAIL_HOST="${MAIL_HOST:-}"
 export NH_MAIL_PORT="${MAIL_PORT:-}"
 export NH_MAIL_USER="${MAIL_USER:-}"
@@ -153,6 +155,7 @@ export NH_MAIL_PASS="${MAIL_PASS:-}"
 export NH_MAIL_FROM="${MAIL_FROM:-}"
 export NH_ARTEMIS_PASSWORD="${ARTEMIS_PASSWORD:-}"
 export NH_REDIS_PASSWORD="${REDIS_PASSWORD:-}"
+export NH_REDIS_DATABASE="${REDIS_DATABASE:-}"
 
 bash "$DEPLOY_DIR/deploy.sh" "$ENV" "$FRONTEND_IMAGE" "$BACKEND_IMAGE"
 

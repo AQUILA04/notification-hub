@@ -2,7 +2,10 @@
 # Hosts (OptimizeSolux convention):
 #   notification.optimizesolux.com       → frontend (cockpit)
 #   notification-api.optimizesolux.com   → API Spring Boot
-#   notification-auth.optimizesolux.com  → Keycloak
+# Auth (shared common-infra):
+#   auth.optimizesolux.com/realms/notification-hub
+#
+# Prerequisite: optimize-common-infra running (redis, artemis, keycloak on optimizesolux-common).
 # Start:
 #   docker compose -f docker-compose.prod.yml --project-name notification-hub-prod \
 #     --env-file /opt/notification-hub/prod/.env up -d
@@ -23,54 +26,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - internal
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    networks:
-      - internal
-
-  artemis:
-    image: apache/activemq-artemis:2.40.0
-    restart: unless-stopped
-    environment:
-      ARTEMIS_USER: ${ARTEMIS_USER:-artemis}
-      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:?ARTEMIS_PASSWORD is required}
-    networks:
-      - internal
-
-  keycloak:
-    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.2.5}
-    restart: unless-stopped
-    command: ["start", "--import-realm"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-notification_hub}
-      KC_DB_USERNAME: ${DB_USER:-nhub}
-      KC_DB_PASSWORD: ${DB_PASSWORD}
-      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-notification-auth.optimizesolux.com}
-      KC_PROXY_HEADERS: xforwarded
-      KC_HTTP_ENABLED: "true"
-      KC_HEALTH_ENABLED: "true"
-      KC_HTTP_PORT: "8080"
-    volumes:
-      - ${KEYCLOAK_REALM_PATH:-/opt/notification-hub/deploy/keycloak/realm-notification-hub.json}:/opt/keycloak/data/import/realm-notification-hub.json:ro
-    networks:
-      - internal
-      - traefik-public
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik-public"
-      - "traefik.http.routers.nhub-prod-keycloak.rule=Host(`${KEYCLOAK_HOSTNAME:-notification-auth.optimizesolux.com}`)"
-      - "traefik.http.routers.nhub-prod-keycloak.entrypoints=websecure"
-      - "traefik.http.routers.nhub-prod-keycloak.tls.certresolver=letsencrypt"
-      - "traefik.http.services.nhub-prod-keycloak.loadbalancer.server.port=8080"
+      optimizesolux-common:
+        aliases: ["notification-hub-db"]
 
   api:
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
@@ -78,12 +35,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
-      artemis:
-        condition: service_started
-      keycloak:
-        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
       APP_PORT: "8088"
@@ -94,17 +45,19 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      REDIS_DATABASE: ${REDIS_DATABASE:-1}
       ARTEMIS_BROKER_URL: tcp://artemis:61616
       ARTEMIS_USER: ${ARTEMIS_USER:-artemis}
-      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD}
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:?ARTEMIS_PASSWORD is required}
       SMTP_HOST: ${MAIL_HOST:-smtp.resend.com}
       SMTP_PORT: ${MAIL_PORT:-465}
       SMTP_USER: ${MAIL_USER:-resend}
       SMTP_PASSWORD: ${MAIL_PASS:-}
       SMTP_AUTH: "true"
       SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
-      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-https://notification-auth.optimizesolux.com/realms/notification-hub}
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-https://auth.optimizesolux.com/realms/notification-hub}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
       SMS_PROVIDER: ${SMS_PROVIDER:-afriksms}
       SMS_DEFAULT_FROM: ${SMS_DEFAULT_FROM:-}
       AFRIKSMS_CLIENT_ID: ${AFRIKSMS_CLIENT_ID:-}
@@ -117,7 +70,7 @@ services:
       CIRCUIT_BREAKER_ENABLED: ${CIRCUIT_BREAKER_ENABLED:-true}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://notification.optimizesolux.com}
     networks:
-      - internal
+      - optimizesolux-common
       - traefik-public
     labels:
       - "traefik.enable=true"
@@ -146,8 +99,7 @@ volumes:
   postgres_data:
 
 networks:
-  internal:
-    name: notification-hub-prod-internal
+  optimizesolux-common:
     external: true
   traefik-public:
     external: true

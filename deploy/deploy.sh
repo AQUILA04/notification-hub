@@ -141,21 +141,20 @@ echo "Ensuring $ENV_FILE has required keys..."
 if [[ "$ENV" == "prod" ]]; then
   set_env_var_if_missing APP_HOSTNAME "notification.optimizesolux.com"
   set_env_var_if_missing API_HOSTNAME "notification-api.optimizesolux.com"
-  set_env_var_if_missing KEYCLOAK_HOSTNAME "notification-auth.optimizesolux.com"
-  set_env_var_if_missing KEYCLOAK_IMAGE "quay.io/keycloak/keycloak:26.2.5"
-  set_env_var_if_missing KEYCLOAK_REALM_PATH "/opt/notification-hub/deploy/keycloak/realm-notification-hub.json"
+  set_env_var_if_missing OIDC_ISSUER_URI "https://auth.optimizesolux.com/realms/notification-hub"
   set_env_var_if_missing MAIL_HOST "smtp.resend.com"
   set_env_var_if_missing MAIL_PORT "465"
   set_env_var_if_missing MAIL_USER "resend"
   set_env_var_if_missing MAIL_FROM "Notification Hub <noreply@optimizesolux.com>"
   set_env_var_if_missing ARTEMIS_USER "artemis"
+  set_env_var_if_missing REDIS_DATABASE "1"
 fi
 
 if [[ "${CT_UPDATE_ENV_SECRETS:-}" == "true" ]]; then
   echo "CT_UPDATE_ENV_SECRETS=true — applying secret overrides from init/CD..."
   [[ -n "${NH_API_HOSTNAME_PROD:-}" ]] && set_env_var API_HOSTNAME "$NH_API_HOSTNAME_PROD"
   [[ -n "${NH_APP_HOSTNAME_PROD:-}" ]] && set_env_var APP_HOSTNAME "$NH_APP_HOSTNAME_PROD"
-  [[ -n "${NH_KEYCLOAK_HOSTNAME_PROD:-}" ]] && set_env_var KEYCLOAK_HOSTNAME "$NH_KEYCLOAK_HOSTNAME_PROD"
+  [[ -n "${NH_OIDC_ISSUER_URI:-}" ]] && set_env_var OIDC_ISSUER_URI "$NH_OIDC_ISSUER_URI"
   [[ -n "${NH_MAIL_HOST:-}" ]] && set_env_var MAIL_HOST "$NH_MAIL_HOST"
   [[ -n "${NH_MAIL_PORT:-}" ]] && set_env_var MAIL_PORT "$NH_MAIL_PORT"
   [[ -n "${NH_MAIL_USER:-}" ]] && set_env_var MAIL_USER "$NH_MAIL_USER"
@@ -164,15 +163,15 @@ if [[ "${CT_UPDATE_ENV_SECRETS:-}" == "true" ]]; then
   [[ -n "${NH_DB_USER:-}" ]] && set_env_var DB_USER "$NH_DB_USER"
   [[ -n "${NH_DB_PASSWORD:-}" ]] && set_env_var DB_PASSWORD "$NH_DB_PASSWORD"
   [[ -n "${NH_DB_NAME:-}" ]] && set_env_var DB_NAME "$NH_DB_NAME"
-  [[ -n "${NH_KEYCLOAK_ADMIN_PASSWORD:-}" ]] && set_env_var KEYCLOAK_ADMIN_PASSWORD "$NH_KEYCLOAK_ADMIN_PASSWORD"
   [[ -n "${NH_ARTEMIS_PASSWORD:-}" ]] && set_env_var ARTEMIS_PASSWORD "$NH_ARTEMIS_PASSWORD"
   [[ -n "${NH_REDIS_PASSWORD:-}" ]] && set_env_var REDIS_PASSWORD "$NH_REDIS_PASSWORD"
+  [[ -n "${NH_REDIS_DATABASE:-}" ]] && set_env_var REDIS_DATABASE "$NH_REDIS_DATABASE"
 fi
 
 if [[ "$ENV" == "prod" ]]; then
   safe_source_env "$ENV_FILE"
   set_env_var_if_missing CORS_ORIGINS "https://${APP_HOSTNAME}"
-  set_env_var_if_missing OIDC_ISSUER_URI "https://${KEYCLOAK_HOSTNAME}/realms/notification-hub"
+  set_env_var_if_missing OIDC_ISSUER_URI "https://auth.optimizesolux.com/realms/notification-hub"
 fi
 
 TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
@@ -213,12 +212,12 @@ if [[ "$ENV" == "prod" ]]; then
   safe_source_env "$ENV_FILE"
   APP_URL="https://${APP_HOSTNAME:-notification.optimizesolux.com}"
   API_URL="https://${API_HOSTNAME:-notification-api.optimizesolux.com}"
-  AUTH_URL="https://${KEYCLOAK_HOSTNAME:-notification-auth.optimizesolux.com}/realms/notification-hub"
+  AUTH_URL="${OIDC_ISSUER_URI:-https://auth.optimizesolux.com/realms/notification-hub}"
   echo "HTTP smoke: app=$APP_URL api=$API_URL auth=$AUTH_URL"
   sleep 8
   curl -sk -o /dev/null -w "app=%{http_code}\n" "$APP_URL/" || echo "WARN: app HTTP check failed"
   curl -sk -o /dev/null -w "api=%{http_code}\n" "$API_URL/actuator/health" || true
-  curl -sk -o /dev/null -w "auth=%{http_code}\n" "$AUTH_URL" || echo "WARN: auth HTTP check failed"
+  curl -sk -o /dev/null -w "auth=%{http_code}\n" "$AUTH_URL" || echo "WARN: auth HTTP check failed (common-infra Keycloak)"
 fi
 
 echo "Deployment finished."

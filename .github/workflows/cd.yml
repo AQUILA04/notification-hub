@@ -113,10 +113,8 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
           PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
-          PROD_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.PROD_KEYCLOAK_ADMIN_PASSWORD }}
           PROD_APP_HOSTNAME: ${{ secrets.PROD_APP_HOSTNAME }}
           PROD_API_HOSTNAME: ${{ secrets.PROD_API_HOSTNAME }}
-          PROD_KEYCLOAK_HOSTNAME: ${{ secrets.PROD_KEYCLOAK_HOSTNAME }}
           PROD_MAIL_HOST: ${{ secrets.PROD_MAIL_HOST }}
           PROD_MAIL_PORT: ${{ secrets.PROD_MAIL_PORT }}
           PROD_MAIL_USER: ${{ secrets.PROD_MAIL_USER }}
@@ -148,10 +146,9 @@ jobs:
             --db-user "$DB_USER"
             --db-password "$PROD_DB_PASSWORD"
             --db-name "$PROD_DB_NAME"
-            --keycloak-admin-password "$PROD_KEYCLOAK_ADMIN_PASSWORD"
             --app-hostname-prod "$PROD_APP_HOSTNAME"
             --api-hostname-prod "$PROD_API_HOSTNAME"
-            --keycloak-hostname-prod "$PROD_KEYCLOAK_HOSTNAME"
+            --oidc-issuer-uri "https://auth.optimizesolux.com/realms/notification-hub"
             --mail-host "$PROD_MAIL_HOST"
             --mail-port "$PROD_MAIL_PORT"
             --mail-user "$PROD_MAIL_USER"
@@ -159,6 +156,7 @@ jobs:
             --mail-from "$PROD_MAIL_FROM"
             --artemis-password "$PROD_ARTEMIS_PASSWORD"
             --redis-password "$PROD_REDIS_PASSWORD"
+            --redis-database "1"
             --github-repo "$GITHUB_REPOSITORY"
           )
 
@@ -194,10 +192,8 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
           PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
-          PROD_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.PROD_KEYCLOAK_ADMIN_PASSWORD }}
           PROD_APP_HOSTNAME: ${{ secrets.PROD_APP_HOSTNAME }}
           PROD_API_HOSTNAME: ${{ secrets.PROD_API_HOSTNAME }}
-          PROD_KEYCLOAK_HOSTNAME: ${{ secrets.PROD_KEYCLOAK_HOSTNAME }}
           PROD_MAIL_HOST: ${{ secrets.PROD_MAIL_HOST }}
           PROD_MAIL_PORT: ${{ secrets.PROD_MAIL_PORT }}
           PROD_MAIL_USER: ${{ secrets.PROD_MAIL_USER }}
@@ -229,10 +225,9 @@ jobs:
             --db-user "$DB_USER"
             --db-password "$PROD_DB_PASSWORD"
             --db-name "$PROD_DB_NAME"
-            --keycloak-admin-password "$PROD_KEYCLOAK_ADMIN_PASSWORD"
             --app-hostname-prod "$PROD_APP_HOSTNAME"
             --api-hostname-prod "$PROD_API_HOSTNAME"
-            --keycloak-hostname-prod "$PROD_KEYCLOAK_HOSTNAME"
+            --oidc-issuer-uri "https://auth.optimizesolux.com/realms/notification-hub"
             --mail-host "$PROD_MAIL_HOST"
             --mail-port "$PROD_MAIL_PORT"
             --mail-user "$PROD_MAIL_USER"
@@ -240,6 +235,7 @@ jobs:
             --mail-from "$PROD_MAIL_FROM"
             --artemis-password "$PROD_ARTEMIS_PASSWORD"
             --redis-password "$PROD_REDIS_PASSWORD"
+            --redis-database "1"
             --github-repo "$GITHUB_REPOSITORY"
           )
 

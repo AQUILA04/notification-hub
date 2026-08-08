@@ -24,6 +24,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
   artemis:
     mode: native
     broker-url: ${ARTEMIS_BROKER_URL:tcp://localhost:61616}

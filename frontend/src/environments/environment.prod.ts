@@ -3,7 +3,7 @@ export const environment = {
   apiBaseUrl: 'https://notification-api.optimizesolux.com',
   auth: {
     enabled: true,
-    url: 'https://notification-auth.optimizesolux.com',
+    url: 'https://auth.optimizesolux.com',
     realm: 'notification-hub',
     clientId: 'notification-hub-console',
   },

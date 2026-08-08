@@ -1,3 +1,8 @@
+# Local / laptop stack — self-contained for offline testing.
+# Starts Postgres + Redis + Artemis + Mailpit + Keycloak.
+# Contabo prod uses deploy/docker-compose.prod.yml + optimize-common-infra
+# (no embedded redis/keycloak/artemis on the VPS product compose).
+
 services:
   postgres:
     image: postgres:16-alpine

@@ -150,7 +150,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
             API_BASE_URL=https://notification-api.optimizesolux.com
-            KEYCLOAK_URL=https://notification-auth.optimizesolux.com
+            KEYCLOAK_URL=https://auth.optimizesolux.com
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-frontend:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-frontend:latest

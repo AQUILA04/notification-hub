@@ -7,13 +7,13 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 ARG API_BASE_URL=https://notification-api.optimizesolux.com
-ARG KEYCLOAK_URL=https://notification-auth.optimizesolux.com
+ARG KEYCLOAK_URL=https://auth.optimizesolux.com
 ENV API_BASE_URL=$API_BASE_URL
 ENV KEYCLOAK_URL=$KEYCLOAK_URL
 RUN node <<'EOF'
 const fs = require('fs');
 const api = process.env.API_BASE_URL || 'https://notification-api.optimizesolux.com';
-const auth = process.env.KEYCLOAK_URL || 'https://notification-auth.optimizesolux.com';
+const auth = process.env.KEYCLOAK_URL || 'https://auth.optimizesolux.com';
 const content = `export const environment = {
   production: true,
   apiBaseUrl: '${api}',

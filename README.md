@@ -164,12 +164,14 @@ En local, laisser `false` pour travailler avec `X-Tenant-Id` seul (API profile `
 Hardening P3 (quotas Redis, circuit breakers, audit) :
 [backend/docs/HARDENING.md](backend/docs/HARDENING.md)
 
-## CI / CD Contabo (shared-traefik)
+## CI / CD Contabo (shared-traefik + common-infra)
 
 | Pipeline | Trigger | Action |
 |----------|---------|--------|
 | **CI** | push / PR sur `main` et `release/**` | tests + images GHCR (`*-frontend`, `*-backend`) |
 | **CD** | CI OK sur `release/**` **ou** `workflow_dispatch` (promote) | SSH VPS → `init.sh` → compose + Traefik |
+
+Prérequis VPS : `shared-traefik` + `optimize-common-infra`.
 
 Docs secrets / DNS : [deploy/GITHUB-SECRETS-CONTABO.md](deploy/GITHUB-SECRETS-CONTABO.md)  
 Scripts : [deploy/README.md](deploy/README.md)
@@ -178,8 +180,9 @@ Hosts cibles :
 
 - https://notification.optimizesolux.com
 - https://notification-api.optimizesolux.com
-- https://notification-auth.optimizesolux.com
+- https://auth.optimizesolux.com/realms/notification-hub (Keycloak partagé)
 
+Local : `docker compose up -d postgres redis artemis mailpit keycloak` (stack autonome).
 ## Run API in Compose
 
 ```bash
@@ -208,7 +211,7 @@ deploy/                  Contabo Compose + Traefik scripts (init/deploy)
 deploy/keycloak/         Realm import
 deploy/k8s/              Optional cluster manifests
 .github/workflows/       CI (main) + CD (release/** | promote)
-docker-compose.yml       Local / Contabo Compose stack (dev)
+docker-compose.yml       Local autonomous stack (PG + Redis + Artemis + Mailpit + Keycloak)
 ```
 
 ## P0 / P1 status

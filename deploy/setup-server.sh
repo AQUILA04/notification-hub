@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # setup-server.sh — One-time Contabo setup for Notification Hub
-# Préfère shared-traefik (/opt/optimizesolux) déjà présent sur le VPS.
+# Prérequis: shared-traefik + optimize-common-infra (optimizesolux-common).
 # =============================================================================
 set -euo pipefail
 
@@ -37,7 +37,7 @@ fi
 echo "      Directories created."
 
 echo "[3/5] Creating Docker networks..."
-for net in traefik-public notification-hub-prod-internal; do
+for net in traefik-public optimizesolux-common; do
   if docker network inspect "$net" > /dev/null 2>&1; then
     echo "      Network '$net' already exists, skipping."
   else
@@ -45,6 +45,16 @@ for net in traefik-public notification-hub-prod-internal; do
     echo "      Network '$net' created."
   fi
 done
+
+if ! docker ps --format '{{.Names}}' | grep -Eq 'oci-redis|redis'; then
+  # Soft check — common-infra project name may vary; warn if compose project missing
+  if [[ ! -d /opt/optimizesolux/common-infra ]]; then
+    echo "      WARNING: /opt/optimizesolux/common-infra not found."
+    echo "      Install optimize-common-infra before deploying this product."
+  else
+    echo "      Tip: ensure common-infra is up: sudo /opt/optimizesolux/common-infra/install.sh"
+  fi
+fi
 
 env_quote() {
   local val="$1"
@@ -60,49 +70,46 @@ echo "[4/5] Creating .env files..."
 _db_user="${NH_DB_USER:-nhub}"
 _db_pass="${NH_DB_PASSWORD:-CHANGE_ME_prod_db_password}"
 _db_name="${NH_DB_NAME:-notification_hub}"
-_kc_admin_pass="${NH_KEYCLOAK_ADMIN_PASSWORD:-CHANGE_ME_keycloak_admin_password}"
 _app_host="${NH_APP_HOSTNAME_PROD:-notification.optimizesolux.com}"
 _api_host="${NH_API_HOSTNAME_PROD:-notification-api.optimizesolux.com}"
-_kc_host="${NH_KEYCLOAK_HOSTNAME_PROD:-notification-auth.optimizesolux.com}"
+_oidc="${NH_OIDC_ISSUER_URI:-https://auth.optimizesolux.com/realms/notification-hub}"
 _mail_host="${NH_MAIL_HOST:-smtp.resend.com}"
 _mail_port="${NH_MAIL_PORT:-465}"
 _mail_user="${NH_MAIL_USER:-resend}"
 _mail_pass="${NH_MAIL_PASS:-CHANGE_ME_resend_api_key}"
 _mail_from="${NH_MAIL_FROM:-Notification Hub <noreply@optimizesolux.com>}"
+_artemis_user="${NH_ARTEMIS_USER:-artemis}"
 _artemis_pass="${NH_ARTEMIS_PASSWORD:-CHANGE_ME_artemis_password}"
-_redis_pass="${NH_REDIS_PASSWORD:-}"
+_redis_pass="${NH_REDIS_PASSWORD:-CHANGE_ME_redis}"
+_redis_db="${NH_REDIS_DATABASE:-1}"
 
 _db_pass_q="$(env_quote "$_db_pass")"
-_kc_admin_pass_q="$(env_quote "$_kc_admin_pass")"
 _mail_pass_q="$(env_quote "$_mail_pass")"
 _mail_from_q="$(env_quote "$_mail_from")"
 _artemis_pass_q="$(env_quote "$_artemis_pass")"
 _redis_pass_q="$(env_quote "$_redis_pass")"
+_oidc_q="$(env_quote "$_oidc")"
 
 PROD_ENV="$ROOT/prod/.env"
 if [[ ! -f "$PROD_ENV" ]]; then
   cat > "$PROD_ENV" << EOF
 # =============================================================================
 # Notification Hub PROD — $ROOT/prod/.env
+# Shared tools: optimize-common-infra (redis/artemis/keycloak on optimizesolux-common)
 # =============================================================================
 DB_USER=${_db_user}
 DB_PASSWORD=${_db_pass_q}
 DB_NAME=${_db_name}
 
-KEYCLOAK_ADMIN=admin
-KEYCLOAK_ADMIN_PASSWORD=${_kc_admin_pass_q}
-KEYCLOAK_HOSTNAME=${_kc_host}
-KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:26.2.5
-KEYCLOAK_REALM_PATH=/opt/notification-hub/deploy/keycloak/realm-notification-hub.json
-
 APP_HOSTNAME=${_app_host}
 API_HOSTNAME=${_api_host}
 CORS_ORIGINS=https://${_app_host}
-OIDC_ISSUER_URI=https://${_kc_host}/realms/notification-hub
+OIDC_ISSUER_URI=${_oidc_q}
 
-ARTEMIS_USER=artemis
+ARTEMIS_USER=${_artemis_user}
 ARTEMIS_PASSWORD=${_artemis_pass_q}
 REDIS_PASSWORD=${_redis_pass_q}
+REDIS_DATABASE=${_redis_db}
 
 MAIL_HOST=${_mail_host}
 MAIL_PORT=${_mail_port}
@@ -137,5 +144,6 @@ echo "=== Setup complete! ==="
 echo "DNS (grey cloud) → this server:"
 echo "  ${_app_host}"
 echo "  ${_api_host}"
-echo "  ${_kc_host}"
-echo "Verify secrets in $PROD_ENV then deploy via init.sh / CD."
+echo "Auth (shared): ${_oidc}"
+echo "Verify secrets in $PROD_ENV (REDIS/ARTEMIS must match common-infra .env)."
+echo "Then deploy via init.sh / CD."

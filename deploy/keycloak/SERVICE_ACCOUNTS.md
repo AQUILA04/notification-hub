@@ -9,8 +9,10 @@ profil `local` uniquement).
 
 ## Prérequis
 
-- Keycloak 26.* — realm `notification-hub` (import : `realm-notification-hub.json`)
-- Console admin : http://localhost:8081 (dev) — user `admin` / `admin`
+- Keycloak 26.* — realm `notification-hub`
+  - **Local** : import `realm-notification-hub.json` via `docker compose` (port 8081)
+  - **Prod Contabo** : realm fourni par `optimize-common-infra` (`auth.optimizesolux.com`)
+- Console admin local : http://localhost:8081 — user `admin` / `admin`
 - Rôles realm déjà créés : `notification-sender`, `notification-admin`
 
 ## Recommandation
