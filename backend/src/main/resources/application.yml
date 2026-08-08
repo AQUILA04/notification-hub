@@ -1,0 +1,149 @@
+server:
+  port: ${APP_PORT:8088}
+
+spring:
+  application:
+    name: notification-hub
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:notification_hub}
+    username: ${POSTGRES_USER:nhub}
+    password: ${POSTGRES_PASSWORD:changeme}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  artemis:
+    mode: native
+    broker-url: ${ARTEMIS_BROKER_URL:tcp://localhost:61616}
+    user: ${ARTEMIS_USER:artemis}
+    password: ${ARTEMIS_PASSWORD:artemis}
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+notification-hub:
+  queues:
+    email: nhub.email
+    sms: nhub.sms
+    whatsapp: nhub.whatsapp
+    dlq: nhub.dlq
+  outbox:
+    poll-interval-ms: 500
+    batch-size: 50
+  retry:
+    default-max-attempts: 5
+    initial-delay-ms: 2000
+    multiplier: 2.0
+    max-delay-ms: 300000
+  security:
+    permit-local: false
+  channels:
+    email: true
+    sms: true
+    # false par défaut — POST WHATSAPP → 422 CHANNEL_NOT_ENABLED
+    whatsapp: ${WHATSAPP_ENABLED:false}
+  sms:
+    # Prod target: afriksms | Local smoke without keys: logging
+    provider: ${SMS_PROVIDER:logging}
+    account-sid: ${TWILIO_ACCOUNT_SID:}
+    auth-token: ${TWILIO_AUTH_TOKEN:}
+    http-url: ${SMS_HTTP_URL:}
+    http-auth-header: ${SMS_HTTP_AUTH:}
+    default-from: ${SMS_DEFAULT_FROM:}
+    afriksms:
+      client-id: ${AFRIKSMS_CLIENT_ID:}
+      api-key: ${AFRIKSMS_API_KEY:}
+      base-url: ${AFRIKSMS_BASE_URL:https://api.afriksms.com/api/web/web_v1/outbounds}
+  email:
+    provider: ${EMAIL_PROVIDER:smtp}
+  whatsapp:
+    provider: ${WHATSAPP_PROVIDER:twilio}
+    account-sid: ${TWILIO_ACCOUNT_SID:}
+    auth-token: ${TWILIO_AUTH_TOKEN:}
+    status-callback-url: ${TWILIO_STATUS_CALLBACK_URL:}
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+      - http://127.0.0.1:4200
+  quota:
+    enabled: ${QUOTA_ENABLED:true}
+    default-per-minute: ${QUOTA_DEFAULT_PER_MINUTE:120}
+    per-channel-per-minute:
+      email: ${QUOTA_EMAIL_PER_MINUTE:200}
+      sms: ${QUOTA_SMS_PER_MINUTE:60}
+      whatsapp: ${QUOTA_WHATSAPP_PER_MINUTE:30}
+  circuit-breaker:
+    enabled: ${CIRCUIT_BREAKER_ENABLED:true}
+    failure-threshold: ${CIRCUIT_BREAKER_FAILURE_THRESHOLD:5}
+    open-duration-seconds: ${CIRCUIT_BREAKER_OPEN_SECONDS:60}
+  cost:
+    email: ${COST_EMAIL:0.0001}
+    sms: ${COST_SMS:0.04}
+    whatsapp: ${COST_WHATSAPP:0.05}
+
+logging:
+  level:
+    root: INFO
+    com.optimizesolux.notificationhub: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
+
+notification-hub:
+  security:
+    permit-local: true
+
+logging:
+  level:
+    com.optimizesolux.notificationhub: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://keycloak:8080/realms/notification-hub}
+
+notification-hub:
+  security:
+    permit-local: false

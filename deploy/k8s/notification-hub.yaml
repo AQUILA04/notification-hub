@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: notification-hub
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-hub-config
+  namespace: notification-hub
+data:
+  SPRING_PROFILES_ACTIVE: "docker"
+  APP_PORT: "8088"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "notification_hub"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  ARTEMIS_BROKER_URL: "tcp://artemis:61616"
+  SMTP_HOST: "mailpit"
+  SMTP_PORT: "1025"
+  OIDC_ISSUER_URI: "https://auth.example.com/realms/notification-hub"
+  WHATSAPP_ENABLED: "false"
+  QUOTA_ENABLED: "true"
+  QUOTA_DEFAULT_PER_MINUTE: "120"
+  QUOTA_EMAIL_PER_MINUTE: "200"
+  QUOTA_SMS_PER_MINUTE: "60"
+  QUOTA_WHATSAPP_PER_MINUTE: "30"
+  CIRCUIT_BREAKER_ENABLED: "true"
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+  CIRCUIT_BREAKER_OPEN_SECONDS: "60"
+  COST_EMAIL: "0.0001"
+  COST_SMS: "0.04"
+  COST_WHATSAPP: "0.05"
+  notification-hub.queues.email: "nhub.email"
+  notification-hub.queues.sms: "nhub.sms"
+  notification-hub.queues.whatsapp: "nhub.whatsapp"
+  notification-hub.queues.dlq: "nhub.dlq"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: notification-hub-secrets
+  namespace: notification-hub
+type: Opaque
+stringData:
+  POSTGRES_USER: "nhub"
+  POSTGRES_PASSWORD: "changeme"
+  ARTEMIS_USER: "artemis"
+  ARTEMIS_PASSWORD: "artemis"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-hub-api
+  namespace: notification-hub
+  labels:
+    app: notification-hub-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-hub-api
+  template:
+    metadata:
+      labels:
+        app: notification-hub-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/optimizesolux/notification-hub:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8088
+              name: http
+          envFrom:
+            - configMapRef:
+                name: notification-hub-config
+            - secretRef:
+                name: notification-hub-secrets
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-hub-api
+  namespace: notification-hub
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: notification-hub-api
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: notification-hub-api
+  namespace: notification-hub
+spec:
+  podSelector:
+    matchLabels:
+      app: notification-hub-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8088
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Postgres, Redis, Artemis, SMTP, Keycloak (same ns or cluster)
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 61616
+        - protocol: TCP
+          port: 1025
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-hub-api
+  namespace: notification-hub
+spec:
+  selector:
+    app: notification-hub-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: notification-hub-api
+  namespace: notification-hub
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: notification-hub-api
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

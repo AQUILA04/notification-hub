@@ -1,0 +1,1 @@
+# Keep cert/ in git for Docker build-contexts (Zscaler PEM stays local / gitignored)

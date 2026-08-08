@@ -1,0 +1,176 @@
+name: Notification Hub CI Pipeline
+
+# CI: push / merge sur main (+ release/** pour produire les images consommées par le CD)
+on:
+  push:
+    branches: [main, "release/**"]
+  pull_request:
+    branches: [main, "release/**"]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      deploy: ${{ steps.filter.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'cert/**'
+            backend:
+              - 'backend/**'
+              - 'cert/**'
+            deploy:
+              - 'deploy/**'
+              - 'docker-compose.yml'
+              - '.github/workflows/**'
+
+  build-backend:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        run: |
+          echo "IMAGE_NAME_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Backend unit tests
+        working-directory: ./backend
+        run: mvn -B -Pjdk21 test
+
+      - name: Ensure certs context exists
+        run: |
+          mkdir -p cert
+          touch cert/.gitkeep
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-backend
+
+      - name: Build and push Backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          build-contexts: |
+            certs=cert
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-backend:latest
+          labels: ${{ steps.meta.outputs.labels }}
+
+  build-frontend:
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        run: |
+          echo "IMAGE_NAME_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend (Angular)
+        working-directory: ./frontend
+        run: npm run build -- --configuration=production
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-frontend
+
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            API_BASE_URL=https://notification-api.optimizesolux.com
+            KEYCLOAK_URL=https://notification-auth.optimizesolux.com
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}-frontend:latest
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # Garde-fou : un push qui ne touche ni frontend ni backend (ex. docs) ne bloque pas le CD
+  ci-ok:
+    needs: [changes, build-backend, build-frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate CI result
+        run: |
+          be="${{ needs.build-backend.result }}"
+          fe="${{ needs.build-frontend.result }}"
+          echo "backend=$be frontend=$fe"
+          if [[ "$be" == "failure" || "$fe" == "failure" ]]; then
+            exit 1
+          fi
+          if [[ "$be" == "cancelled" || "$fe" == "cancelled" ]]; then
+            exit 1
+          fi
+          echo "CI gate OK"

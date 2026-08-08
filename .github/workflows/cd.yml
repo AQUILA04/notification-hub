@@ -1,0 +1,251 @@
+name: Notification Hub CD Pipeline
+
+# CD Contabo (shared-traefik) :
+# - push / merge sur release/** (après CI success) → deploy PROD
+# - workflow_dispatch (promote) → déploie les dernières images publiées sur main
+#
+# Pattern bootstrap (comme CleanTrack Pro) :
+#   SSH → curl init.sh depuis GitHub → sync deploy/ → setup si besoin → deploy.sh
+
+on:
+  workflow_run:
+    workflows: ["Notification Hub CI Pipeline"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        type: choice
+        required: true
+        default: promote
+        options:
+          - promote
+
+jobs:
+  resolve-images:
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'release/')) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_image: ${{ steps.resolve.outputs.frontend_image }}
+      backend_image: ${{ steps.resolve.outputs.backend_image }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Resolve last published image for each component
+        id: resolve
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')
+          REGISTRY="ghcr.io"
+
+          echo "$GHCR_TOKEN" | docker login "$REGISTRY" -u "$GHCR_USERNAME" --password-stdin
+
+          git fetch origin main --depth=200 2>/dev/null || git fetch origin main 2>/dev/null || true
+
+          resolve_sha() {
+            local component="$1"
+            local image="$REGISTRY/$REPO_LOWER-$component"
+            local start_sha sha
+
+            for start_sha in "$HEAD_SHA" "origin/main" "main"; do
+              if ! git rev-parse --verify "${start_sha}^{commit}" >/dev/null 2>&1; then
+                continue
+              fi
+              echo "Searching $component image in history of $start_sha" >&2
+              while read -r sha; do
+                if docker manifest inspect "$image:$sha" > /dev/null 2>&1; then
+                  echo "Resolved $component from $start_sha history: $image:$sha" >&2
+                  echo "$image:$sha"
+                  return 0
+                fi
+              done < <(git log --format='%H' "$start_sha" | head -100)
+            done
+
+            echo "ERROR: No published image found for $component in the last 100 commits" >&2
+            return 1
+          }
+
+          FRONTEND_IMAGE=$(resolve_sha "frontend")
+          BACKEND_IMAGE=$(resolve_sha "backend")
+
+          echo "Resolved frontend: $FRONTEND_IMAGE"
+          echo "Resolved backend:  $BACKEND_IMAGE"
+
+          echo "frontend_image=$FRONTEND_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "backend_image=$BACKEND_IMAGE"   >> "$GITHUB_OUTPUT"
+
+  deploy-prod:
+    needs: resolve-images
+    if: |
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'release/')
+    runs-on: ubuntu-latest
+    name: Deploy to PROD (release/**)
+    environment: prod
+    steps:
+      - name: Prepare SSH key
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Bootstrap & Deploy to PROD server
+        env:
+          FRONTEND_IMAGE: ${{ needs.resolve-images.outputs.frontend_image }}
+          BACKEND_IMAGE: ${{ needs.resolve-images.outputs.backend_image }}
+          SERVER_USER: ${{ secrets.PROD_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.PROD_SERVER_HOST }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DB_USER: ${{ secrets.DB_USER }}
+          PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
+          PROD_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.PROD_KEYCLOAK_ADMIN_PASSWORD }}
+          PROD_APP_HOSTNAME: ${{ secrets.PROD_APP_HOSTNAME }}
+          PROD_API_HOSTNAME: ${{ secrets.PROD_API_HOSTNAME }}
+          PROD_KEYCLOAK_HOSTNAME: ${{ secrets.PROD_KEYCLOAK_HOSTNAME }}
+          PROD_MAIL_HOST: ${{ secrets.PROD_MAIL_HOST }}
+          PROD_MAIL_PORT: ${{ secrets.PROD_MAIL_PORT }}
+          PROD_MAIL_USER: ${{ secrets.PROD_MAIL_USER }}
+          PROD_MAIL_PASS: ${{ secrets.PROD_MAIL_PASS }}
+          PROD_MAIL_FROM: ${{ secrets.PROD_MAIL_FROM }}
+          PROD_ARTEMIS_PASSWORD: ${{ secrets.PROD_ARTEMIS_PASSWORD }}
+          PROD_REDIS_PASSWORD: ${{ secrets.PROD_REDIS_PASSWORD }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          echo "Deploying $FRONTEND_IMAGE and $BACKEND_IMAGE to PROD ($SERVER_HOST)"
+
+          REPO_RAW="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/deploy"
+
+          ssh -o StrictHostKeyChecking=no -i private_key "$SERVER_USER@$SERVER_HOST" bash << ENDSSH
+          set -euo pipefail
+          mkdir -p /opt/notification-hub
+          curl -sSL "${REPO_RAW}/init.sh" -o /opt/notification-hub/init.sh
+          chmod +x /opt/notification-hub/init.sh
+          ENDSSH
+
+          INIT_ARGS=(
+            prod
+            "$FRONTEND_IMAGE"
+            "$BACKEND_IMAGE"
+            --ghcr-username "$GHCR_USERNAME"
+            --ghcr-token "$GHCR_TOKEN"
+            --db-user "$DB_USER"
+            --db-password "$PROD_DB_PASSWORD"
+            --db-name "$PROD_DB_NAME"
+            --keycloak-admin-password "$PROD_KEYCLOAK_ADMIN_PASSWORD"
+            --app-hostname-prod "$PROD_APP_HOSTNAME"
+            --api-hostname-prod "$PROD_API_HOSTNAME"
+            --keycloak-hostname-prod "$PROD_KEYCLOAK_HOSTNAME"
+            --mail-host "$PROD_MAIL_HOST"
+            --mail-port "$PROD_MAIL_PORT"
+            --mail-user "$PROD_MAIL_USER"
+            --mail-pass "$PROD_MAIL_PASS"
+            --mail-from "$PROD_MAIL_FROM"
+            --artemis-password "$PROD_ARTEMIS_PASSWORD"
+            --redis-password "$PROD_REDIS_PASSWORD"
+            --github-repo "$GITHUB_REPOSITORY"
+          )
+
+          REMOTE_CMD="sudo /opt/notification-hub/init.sh $(printf '%q ' "${INIT_ARGS[@]}")"
+          ssh -o StrictHostKeyChecking=no -i private_key "$SERVER_USER@$SERVER_HOST" "$REMOTE_CMD"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f private_key
+
+  promote:
+    needs: resolve-images
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'promote'
+    runs-on: ubuntu-latest
+    name: Promote main → PROD
+    environment: prod
+    steps:
+      - name: Prepare SSH key
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Bootstrap & Deploy to PROD server
+        env:
+          FRONTEND_IMAGE: ${{ needs.resolve-images.outputs.frontend_image }}
+          BACKEND_IMAGE: ${{ needs.resolve-images.outputs.backend_image }}
+          SERVER_USER: ${{ secrets.PROD_SERVER_USER }}
+          SERVER_HOST: ${{ secrets.PROD_SERVER_HOST }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DB_USER: ${{ secrets.DB_USER }}
+          PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          PROD_DB_NAME: ${{ secrets.PROD_DB_NAME }}
+          PROD_KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.PROD_KEYCLOAK_ADMIN_PASSWORD }}
+          PROD_APP_HOSTNAME: ${{ secrets.PROD_APP_HOSTNAME }}
+          PROD_API_HOSTNAME: ${{ secrets.PROD_API_HOSTNAME }}
+          PROD_KEYCLOAK_HOSTNAME: ${{ secrets.PROD_KEYCLOAK_HOSTNAME }}
+          PROD_MAIL_HOST: ${{ secrets.PROD_MAIL_HOST }}
+          PROD_MAIL_PORT: ${{ secrets.PROD_MAIL_PORT }}
+          PROD_MAIL_USER: ${{ secrets.PROD_MAIL_USER }}
+          PROD_MAIL_PASS: ${{ secrets.PROD_MAIL_PASS }}
+          PROD_MAIL_FROM: ${{ secrets.PROD_MAIL_FROM }}
+          PROD_ARTEMIS_PASSWORD: ${{ secrets.PROD_ARTEMIS_PASSWORD }}
+          PROD_REDIS_PASSWORD: ${{ secrets.PROD_REDIS_PASSWORD }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          echo "Promoting to PROD: frontend=$FRONTEND_IMAGE backend=$BACKEND_IMAGE"
+
+          REPO_RAW="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/deploy"
+
+          ssh -o StrictHostKeyChecking=no -i private_key "$SERVER_USER@$SERVER_HOST" bash << ENDSSH
+          set -euo pipefail
+          mkdir -p /opt/notification-hub
+          curl -sSL "${REPO_RAW}/init.sh" -o /opt/notification-hub/init.sh
+          chmod +x /opt/notification-hub/init.sh
+          ENDSSH
+
+          INIT_ARGS=(
+            prod
+            "$FRONTEND_IMAGE"
+            "$BACKEND_IMAGE"
+            --ghcr-username "$GHCR_USERNAME"
+            --ghcr-token "$GHCR_TOKEN"
+            --db-user "$DB_USER"
+            --db-password "$PROD_DB_PASSWORD"
+            --db-name "$PROD_DB_NAME"
+            --keycloak-admin-password "$PROD_KEYCLOAK_ADMIN_PASSWORD"
+            --app-hostname-prod "$PROD_APP_HOSTNAME"
+            --api-hostname-prod "$PROD_API_HOSTNAME"
+            --keycloak-hostname-prod "$PROD_KEYCLOAK_HOSTNAME"
+            --mail-host "$PROD_MAIL_HOST"
+            --mail-port "$PROD_MAIL_PORT"
+            --mail-user "$PROD_MAIL_USER"
+            --mail-pass "$PROD_MAIL_PASS"
+            --mail-from "$PROD_MAIL_FROM"
+            --artemis-password "$PROD_ARTEMIS_PASSWORD"
+            --redis-password "$PROD_REDIS_PASSWORD"
+            --github-repo "$GITHUB_REPOSITORY"
+          )
+
+          REMOTE_CMD="sudo /opt/notification-hub/init.sh $(printf '%q ' "${INIT_ARGS[@]}")"
+          ssh -o StrictHostKeyChecking=no -i private_key "$SERVER_USER@$SERVER_HOST" "$REMOTE_CMD"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f private_key

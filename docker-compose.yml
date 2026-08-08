@@ -1,0 +1,108 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-notification_hub}
+      POSTGRES_USER: ${POSTGRES_USER:-nhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5433:5432"
+    volumes:
+      - nhub_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nhub} -d ${POSTGRES_DB:-notification_hub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  artemis:
+    image: apache/activemq-artemis:2.40.0
+    environment:
+      ARTEMIS_USER: ${ARTEMIS_USER:-artemis}
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-artemis}
+    ports:
+      - "61616:61616"
+      - "8161:8161"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8161 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_PORT: 8080
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./deploy/keycloak/realm-notification-hub.json:/opt/keycloak/data/import/realm-notification-hub.json:ro
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      additional_contexts:
+        certs: ./cert
+    profiles: ["app"]
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      APP_PORT: 8088
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-notification_hub}
+      POSTGRES_USER: ${POSTGRES_USER:-nhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ARTEMIS_BROKER_URL: tcp://artemis:61616
+      ARTEMIS_USER: ${ARTEMIS_USER:-artemis}
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-artemis}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMS_PROVIDER: ${SMS_PROVIDER:-logging}
+      SMS_DEFAULT_FROM: ${SMS_DEFAULT_FROM:-}
+      AFRIKSMS_CLIENT_ID: ${AFRIKSMS_CLIENT_ID:-}
+      AFRIKSMS_API_KEY: ${AFRIKSMS_API_KEY:-}
+      AFRIKSMS_BASE_URL: ${AFRIKSMS_BASE_URL:-https://api.afriksms.com/api/web/web_v1/outbounds}
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-twilio}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_STATUS_CALLBACK_URL: ${TWILIO_STATUS_CALLBACK_URL:-}
+      SMS_HTTP_URL: ${SMS_HTTP_URL:-}
+      SMS_HTTP_AUTH: ${SMS_HTTP_AUTH:-}
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      artemis:
+        condition: service_started
+      mailpit:
+        condition: service_started
+
+volumes:
+  nhub_pg:
