@@ -1,0 +1,72 @@
+{
+  "groups": [
+    {
+      "name": "optimize.notification.hub",
+      "type": "com.optimize.notification.hub.autoconfigure.NotificationHubProperties",
+      "description": "Notification Hub client integration settings."
+    },
+    {
+      "name": "optimize.notification.hub.oauth2",
+      "type": "com.optimize.notification.hub.autoconfigure.NotificationHubProperties$OAuth2",
+      "description": "OAuth2 client-credentials (service account) settings."
+    }
+  ],
+  "properties": [
+    {
+      "name": "optimize.notification.hub.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable Notification Hub auto-configuration.",
+      "defaultValue": true
+    },
+    {
+      "name": "optimize.notification.hub.base-url",
+      "type": "java.lang.String",
+      "description": "Base URL of the Notification Hub API (no trailing slash)."
+    },
+    {
+      "name": "optimize.notification.hub.tenant-id",
+      "type": "java.lang.String",
+      "description": "Optional X-Tenant-Id header (local/dev when JWT tenant claim is absent)."
+    },
+    {
+      "name": "optimize.notification.hub.connect-timeout-ms",
+      "type": "java.lang.Integer",
+      "description": "HTTP connect timeout in milliseconds.",
+      "defaultValue": 5000
+    },
+    {
+      "name": "optimize.notification.hub.read-timeout-ms",
+      "type": "java.lang.Integer",
+      "description": "HTTP read timeout in milliseconds.",
+      "defaultValue": 30000
+    },
+    {
+      "name": "optimize.notification.hub.oauth2.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Fetch and attach Bearer tokens via client credentials.",
+      "defaultValue": true
+    },
+    {
+      "name": "optimize.notification.hub.oauth2.token-uri",
+      "type": "java.lang.String",
+      "description": "OAuth2 token endpoint (Keycloak client-credentials)."
+    },
+    {
+      "name": "optimize.notification.hub.oauth2.client-id",
+      "type": "java.lang.String",
+      "description": "Service account client id."
+    },
+    {
+      "name": "optimize.notification.hub.oauth2.client-secret",
+      "type": "java.lang.String",
+      "description": "Service account client secret (prefer env/secret store)."
+    },
+    {
+      "name": "optimize.notification.hub.oauth2.refresh-skew-seconds",
+      "type": "java.lang.Integer",
+      "description": "Refresh cached token this many seconds before expiry.",
+      "defaultValue": 30
+    }
+  ],
+  "hints": []
+}
