@@ -54,6 +54,14 @@ public class OtpService {
 
         otpStore.enforceResendCooldown(tenantId, channel, destination, cooldown);
 
+        if (channel == Channel.SMS) {
+            String smsFrom = properties.sms().defaultFrom();
+            if (smsFrom == null || smsFrom.isBlank()) {
+                throw new IllegalStateException(
+                        "SMS OTP requires SMS_DEFAULT_FROM configuration");
+            }
+        }
+
         String code = OtpCodeGenerator.generate(otpConfig.length());
         UUID sessionId = UUID.randomUUID();
         Instant expiresAt = Instant.now().plus(ttl);
