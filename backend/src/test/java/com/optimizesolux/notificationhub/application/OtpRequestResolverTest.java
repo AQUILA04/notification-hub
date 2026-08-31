@@ -27,7 +27,6 @@ class OtpRequestResolverTest {
                 null,
                 null,
                 null,
-                null,
                 new NotificationHubProperties.Whatsapp(
                         "twilio", null, null, null, DEFAULT_FROM, CONTENT_SID),
                 null,
@@ -160,7 +159,6 @@ class OtpRequestResolverTest {
                         null,
                         null,
                         null,
-                        null,
                         new NotificationHubProperties.Whatsapp(
                                 "twilio", null, null, null, DEFAULT_FROM, null),
                         null,
@@ -192,7 +190,6 @@ class OtpRequestResolverTest {
     void rejectsMissingFromWhenNotConfigured() {
         NotificationHubProperties noFrom =
                 new NotificationHubProperties(
-                        null,
                         null,
                         null,
                         null,

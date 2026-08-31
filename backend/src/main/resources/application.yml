@@ -115,11 +115,14 @@ notification-hub:
     whatsapp: ${COST_WHATSAPP:0.05}
   otp:
     enabled: ${OTP_ENABLED:true}
+    provider: ${OTP_PROVIDER:twilio-verify}
+    twilio-verify-service-sid: ${TWILIO_VERIFY_SERVICE_SID:}
+    twilio-verify-whatsapp-sms-fallback: ${OTP_TWILIO_VERIFY_WHATSAPP_SMS_FALLBACK:true}
     length: ${OTP_LENGTH:6}
     ttl-seconds: ${OTP_TTL_SECONDS:300}
     max-verify-attempts: ${OTP_MAX_VERIFY_ATTEMPTS:5}
     resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
-    default-channel: ${OTP_DEFAULT_CHANNEL:WHATSAPP}
+    default-channel: ${OTP_DEFAULT_CHANNEL:SMS}
     sms-body-template: ${OTP_SMS_BODY_TEMPLATE:Votre code de verification est {{code}}. Valide {{ttlMinutes}} minutes.}
 
 logging:

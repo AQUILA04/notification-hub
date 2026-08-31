@@ -4,4 +4,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record OtpSendResponse(
-        UUID sessionId, Instant expiresAt, UUID notificationId, Channel channel) {}
+        UUID sessionId,
+        Instant expiresAt,
+        UUID notificationId,
+        Channel channel,
+        String provider,
+        String providerReference) {}

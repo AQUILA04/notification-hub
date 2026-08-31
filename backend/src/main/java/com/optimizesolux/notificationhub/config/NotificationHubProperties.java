@@ -86,11 +86,16 @@ public record NotificationHubProperties(
             otp =
                     new Otp(
                             true,
+                            "twilio-verify",
+                            null,
+                            true,
+                            null,
+                            null,
                             6,
                             300,
                             5,
                             60,
-                            "WHATSAPP",
+                            "SMS",
                             "Votre code de verification est {{code}}. Valide {{ttlMinutes}} minutes.");
         }
     }
@@ -165,18 +170,28 @@ public record NotificationHubProperties(
     public record Cost(double email, double sms, double whatsapp) {}
 
     /**
-     * OTP module — generate, store (Redis), verify, and dispatch via notification pipeline.
+     * OTP module — generate, store, verify, and dispatch.
      *
      * @param enabled module actif
-     * @param length longueur du code numérique (4–8)
-     * @param ttlSeconds durée de validité en Redis
-     * @param maxVerifyAttempts tentatives de vérification avant invalidation
-     * @param resendCooldownSeconds délai minimum entre deux envois sur même destination
-     * @param defaultChannel WHATSAPP ou SMS si le client n'en précise pas
-     * @param smsBodyTemplate corps SMS avec {{code}} et {{ttlMinutes}}
+     * @param provider internal (Redis + notification pipeline) | twilio-verify
+     * @param twilioVerifyServiceSid Verify Service SID (VA…) when provider=twilio-verify
+     * @param twilioVerifyWhatsappSmsFallback fallback SMS si WhatsApp Verify échoue
+     * @param twilioAccountSid optional override (sinon TWILIO_ACCOUNT_SID global)
+     * @param twilioAuthToken optional override (sinon TWILIO_AUTH_TOKEN global)
+     * @param length longueur du code (provider internal uniquement)
+     * @param ttlSeconds TTL Redis (provider internal uniquement)
+     * @param maxVerifyAttempts tentatives verify (provider internal uniquement)
+     * @param resendCooldownSeconds cooldown renvoi (provider internal uniquement)
+     * @param defaultChannel WHATSAPP ou SMS
+     * @param smsBodyTemplate corps SMS internal provider
      */
     public record Otp(
             boolean enabled,
+            String provider,
+            String twilioVerifyServiceSid,
+            boolean twilioVerifyWhatsappSmsFallback,
+            String twilioAccountSid,
+            String twilioAuthToken,
             int length,
             int ttlSeconds,
             int maxVerifyAttempts,

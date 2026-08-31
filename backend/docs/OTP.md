@@ -1,118 +1,122 @@
 # Module OTP
 
-Le module OTP est intégré au Notification Hub — pas de microservice séparé. Il gère le cycle complet :
+Le module OTP est intégré au Notification Hub. Deux providers :
 
-1. **Génération** du code (SecureRandom, longueur configurable)
-2. **Stockage** hashé en Redis (TTL, tentatives, cooldown renvoi)
-3. **Envoi** via le pipeline existant (`NotificationService` → outbox → WhatsApp/SMS)
-4. **Vérification** par API dédiée
+| Provider | Config | Usage |
+|----------|--------|-------|
+| **`twilio-verify`** (défaut) | `TWILIO_VERIFY_SERVICE_SID` | Twilio gère code + envoi + vérif — **recommandé** |
+| **`internal`** | Redis + pipeline SMS/WhatsApp | Contrôle total, template Content requis pour WhatsApp |
 
-## API
+## API (identique pour les deux providers)
 
-### Envoyer un OTP
+### Envoyer
 
 ```http
 POST /v1/otp/send
 X-Tenant-Id: demo-tenant
-Content-Type: application/json
 
-{
-  "to": "+22890909090",
-  "channel": "WHATSAPP"
-}
+{ "to": "+22890909090", "channel": "SMS" }
 ```
 
-`channel` est optionnel — défaut : `OTP_DEFAULT_CHANNEL` (`WHATSAPP`).
-
-Réponse **202** :
-
-```json
-{
-  "sessionId": "uuid",
-  "expiresAt": "2026-08-31T18:00:00Z",
-  "notificationId": "uuid",
-  "channel": "WHATSAPP"
-}
-```
-
-Le code n'est **jamais** retourné dans la réponse API.
-
-### Vérifier un OTP
+### Vérifier
 
 ```http
 POST /v1/otp/verify
 X-Tenant-Id: demo-tenant
-Content-Type: application/json
 
-{
-  "to": "+22890909090",
-  "code": "424242"
-}
+{ "to": "+22890909090", "code": "424242" }
 ```
 
-Réponse **200** :
+---
 
-```json
-{ "valid": true, "reason": "VALID" }
-```
+## Option A — Twilio Verify (recommandé)
 
-| reason | Signification |
-|--------|---------------|
-| `VALID` | Code correct — session supprimée (usage unique) |
-| `INVALID` | Code incorrect |
-| `EXPIRED` | Session absente ou TTL dépassé |
-| `MAX_ATTEMPTS` | Trop de tentatives — session invalidée |
+Pas de template Meta à créer. Twilio gère le cycle OTP complet.
 
-`sessionId` optionnel sur verify pour lier explicitement à une session d'envoi.
+### 1. Créer un Verify Service (console web)
 
-## Configuration
+1. [console.twilio.com](https://console.twilio.com) → barre **Jump to…** → tapez **Verify**
+2. Ou menu : **Explore products** → **Verify** → **Services**
+3. **Create new Service**
+4. **Friendly name** : `Notification Hub OTP`
+5. **Create**
+6. Copiez le **Service SID** (`VA…`) → `TWILIO_VERIFY_SERVICE_SID`
+
+Lien direct : [Verify Services](https://console.twilio.com/us1/develop/verify/services)
+
+### 2. Configuration `.env`
 
 ```bash
 OTP_ENABLED=true
-OTP_LENGTH=6
-OTP_TTL_SECONDS=300
-OTP_MAX_VERIFY_ATTEMPTS=5
-OTP_RESEND_COOLDOWN_SECONDS=60
+OTP_PROVIDER=twilio-verify
+TWILIO_ACCOUNT_SID=AC...
+TWILIO_AUTH_TOKEN=...
+TWILIO_VERIFY_SERVICE_SID=VA...
+OTP_DEFAULT_CHANNEL=SMS
+```
+
+**Compte Trial** : le numéro destinataire doit être **vérifié** dans  
+[Verified Caller IDs](https://console.twilio.com/us1/develop/phone-numbers/manage/verified)
+
+### 3. WhatsApp via Verify (production)
+
+WhatsApp Verify nécessite un **WhatsApp Sender** enregistré (pas le sandbox Messaging).
+
+```bash
 OTP_DEFAULT_CHANNEL=WHATSAPP
-OTP_SMS_BODY_TEMPLATE=Votre code de verification est {{code}}. Valide {{ttlMinutes}} minutes.
+OTP_TWILIO_VERIFY_WHATSAPP_SMS_FALLBACK=true   # fallback SMS auto
+```
 
-# WhatsApp (Twilio)
-WHATSAPP_ENABLED=true
-TWILIO_WHATSAPP_FROM=+14155238886
-TWILIO_WHATSAPP_OTP_CONTENT_SID=HX...
+Twilio utilise un template Meta Authentication **fixe** — pas de ContentSid à gérer.
 
-# SMS (AfrikSMS)
+### 4. Tester
+
+```bash
+curl -X POST http://localhost:8088/v1/otp/send \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: demo-tenant" \
+  -d '{"to": "+22890909090"}'
+
+curl -X POST http://localhost:8088/v1/otp/verify \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: demo-tenant" \
+  -d '{"to": "+22890909090", "code": "123456"}'
+```
+
+Réponse send inclut `provider: "twilio-verify"` et `providerReference: "VE…"`.
+
+---
+
+## Option B — Provider internal (Redis + hub)
+
+```bash
+OTP_PROVIDER=internal
+OTP_DEFAULT_CHANNEL=SMS
 SMS_PROVIDER=afriksms
 SMS_DEFAULT_FROM=MyBrand
 ```
+
+WhatsApp internal nécessite `TWILIO_WHATSAPP_OTP_CONTENT_SID` (template Meta approuvé).
+
+Voir [WHATSAPP_TWILIO.md](WHATSAPP_TWILIO.md).
+
+---
 
 ## Erreurs HTTP
 
 | code | HTTP | Description |
 |------|------|-------------|
-| `OTP_RESEND_COOLDOWN` | 429 | Renvoi trop rapide |
-| `OTP_NOT_CONFIGURED` | 422 | ContentSid / from WhatsApp manquant |
-| `CHANNEL_NOT_ENABLED` | 422 | Canal désactivé |
+| `OTP_RESEND_COOLDOWN` | 429 | Provider internal — renvoi trop rapide |
+| `OTP_NOT_CONFIGURED` | 422 | Provider internal WhatsApp mal configuré |
+| — | 422 | `TWILIO_VERIFY_SERVICE_SID` manquant |
 
-## Package Java (module interne)
+## Logs Twilio Verify
 
-```
-com.optimizesolux.notificationhub.otp
-├── api/           OtpController, DTOs, exceptions
-├── application/   OtpService, OtpCodeGenerator, OtpHasher
-├── domain/        OtpSession, OtpVerifyReason
-└── infrastructure/ RedisOtpStore
-```
+Console → **Verify** → **Logs** : tentatives, canal utilisé, erreurs.
 
-## Client Spring Boot
+## Client Java
 
 ```java
-OtpSendResponse sent = client.sendOtp(OtpSendRequest.whatsApp("+22890909090"));
-OtpVerifyResponse ok = client.verifyOtp(OtpVerifyRequest.of("+22890909090", userInput));
+client.sendOtp(OtpSendRequest.of("+22890909090"));
+client.verifyOtp(OtpVerifyRequest.of("+22890909090", code));
 ```
-
-## Rétrocompatibilité
-
-`POST /v1/notifications` avec `messageType=OTP` + `otpCode` reste disponible si l'application génère elle-même le code (sans vérification hub).
-
-Voir aussi : [WHATSAPP_TWILIO.md](WHATSAPP_TWILIO.md)
