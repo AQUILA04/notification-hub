@@ -1,7 +1,5 @@
 package com.optimizesolux.notificationhub.otp.application;
 
-import com.optimizesolux.notificationhub.infrastructure.provider.TwilioWhatsAppProvider;
-
 /** Normalises phone numbers to E.164 (+…). */
 public final class PhoneNormalizer {
 
@@ -21,8 +19,10 @@ public final class PhoneNormalizer {
         if (!v.startsWith("+") || v.length() < 8) {
             throw new IllegalArgumentException("Phone number must be E.164 format (e.g. +22890909090)");
         }
-        // Reuse WhatsApp normalizer to validate digit-only tail
-        TwilioWhatsAppProvider.normalizeWhatsAppAddress(v);
+        String digits = v.substring(1);
+        if (!digits.chars().allMatch(Character::isDigit)) {
+            throw new IllegalArgumentException("Phone number must be E.164 format (e.g. +22890909090)");
+        }
         return v;
     }
 }

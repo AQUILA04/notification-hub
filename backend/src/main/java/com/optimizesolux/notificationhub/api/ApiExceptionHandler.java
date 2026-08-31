@@ -1,6 +1,7 @@
 package com.optimizesolux.notificationhub.api;
 
 import com.optimizesolux.notificationhub.otp.api.OtpResendCooldownException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;

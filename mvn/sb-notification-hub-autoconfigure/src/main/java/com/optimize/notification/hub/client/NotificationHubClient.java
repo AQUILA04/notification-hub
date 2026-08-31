@@ -4,6 +4,7 @@ import com.optimize.notification.hub.model.Channel;
 import com.optimize.notification.hub.model.CreateNotificationRequest;
 import com.optimize.notification.hub.model.NotificationEventResponse;
 import com.optimize.notification.hub.model.NotificationResponse;
+import com.optimize.notification.hub.model.NotificationStatus;
 import com.optimize.notification.hub.model.OtpSendRequest;
 import com.optimize.notification.hub.model.OtpSendResponse;
 import com.optimize.notification.hub.model.OtpVerifyRequest;
