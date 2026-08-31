@@ -51,6 +51,9 @@ WhatsApp via Twilio (P2) :
 Module OTP intégré (génération + vérification) :
 [backend/docs/OTP.md](backend/docs/OTP.md)
 
+Guide d'intégration OTP pour les applications clientes :
+[backend/docs/OTP_CLIENT_INTEGRATION.md](backend/docs/OTP_CLIENT_INTEGRATION.md)
+
 ## Run API locally (profile `local`)
 
 Requires JDK **25** (Docker image uses 25; host may use a 25 toolchain).
