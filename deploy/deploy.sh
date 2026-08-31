@@ -166,12 +166,24 @@ if [[ "${CT_UPDATE_ENV_SECRETS:-}" == "true" ]]; then
   [[ -n "${NH_ARTEMIS_PASSWORD:-}" ]] && set_env_var ARTEMIS_PASSWORD "$NH_ARTEMIS_PASSWORD"
   [[ -n "${NH_REDIS_PASSWORD:-}" ]] && set_env_var REDIS_PASSWORD "$NH_REDIS_PASSWORD"
   [[ -n "${NH_REDIS_DATABASE:-}" ]] && set_env_var REDIS_DATABASE "$NH_REDIS_DATABASE"
+  [[ -n "${NH_OTP_ENABLED:-}" ]] && set_env_var OTP_ENABLED "$NH_OTP_ENABLED"
+  [[ -n "${NH_OTP_PROVIDER:-}" ]] && set_env_var OTP_PROVIDER "$NH_OTP_PROVIDER"
+  [[ -n "${NH_OTP_DEFAULT_CHANNEL:-}" ]] && set_env_var OTP_DEFAULT_CHANNEL "$NH_OTP_DEFAULT_CHANNEL"
+  [[ -n "${NH_TWILIO_ACCOUNT_SID:-}" ]] && set_env_var TWILIO_ACCOUNT_SID "$NH_TWILIO_ACCOUNT_SID"
+  [[ -n "${NH_TWILIO_AUTH_TOKEN:-}" ]] && set_env_var TWILIO_AUTH_TOKEN "$NH_TWILIO_AUTH_TOKEN"
+  [[ -n "${NH_TWILIO_VERIFY_SERVICE_SID:-}" ]] && set_env_var TWILIO_VERIFY_SERVICE_SID "$NH_TWILIO_VERIFY_SERVICE_SID"
 fi
 
 if [[ "$ENV" == "prod" ]]; then
   safe_source_env "$ENV_FILE"
   set_env_var_if_missing CORS_ORIGINS "https://${APP_HOSTNAME}"
   set_env_var_if_missing OIDC_ISSUER_URI "https://auth.optimizesolux.com/realms/notification-hub"
+  set_env_var_if_missing OTP_ENABLED "true"
+  set_env_var_if_missing OTP_PROVIDER "twilio-verify"
+  set_env_var_if_missing OTP_DEFAULT_CHANNEL "SMS"
+  if [[ -n "${API_HOSTNAME:-}" ]]; then
+    set_env_var_if_missing TWILIO_STATUS_CALLBACK_URL "https://${API_HOSTNAME}/v1/webhooks/twilio"
+  fi
 fi
 
 TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")

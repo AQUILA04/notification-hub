@@ -35,6 +35,15 @@ Réutilise la même clé SSH que SharedTraefik / CleanTrack si possible.
 | `PROD_MAIL_FROM` | `Notification Hub <noreply@optimizesolux.com>` |
 | `PROD_ARTEMIS_PASSWORD` | **même** valeur que common-infra `.env` |
 | `PROD_REDIS_PASSWORD` | **même** valeur que common-infra `.env` |
+| `PROD_OTP_ENABLED` | `true` |
+| `PROD_OTP_PROVIDER` | `twilio-verify` |
+| `PROD_OTP_DEFAULT_CHANNEL` | `SMS` (ou `WHATSAPP` quand sender prod prêt) |
+| `PROD_TWILIO_ACCOUNT_SID` | `AC…` (Console Twilio → Account Info) |
+| `PROD_TWILIO_AUTH_TOKEN` | Auth Token Twilio (Show dans Console) |
+| `PROD_TWILIO_VERIFY_SERVICE_SID` | `VA…` (Console → Verify → Services) |
+
+Le CD injecte ces secrets dans `/opt/notification-hub/prod/.env` à chaque déploiement (`CT_UPDATE_ENV_SECRETS=true`).
+`TWILIO_STATUS_CALLBACK_URL` est dérivé automatiquement : `https://<PROD_API_HOSTNAME>/v1/webhooks/twilio`.
 
 Créer aussi l’**environment** GitHub Actions nommé `prod` (approvals optionnels).
 

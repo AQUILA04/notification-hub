@@ -35,6 +35,12 @@ REDIS_PASSWORD=""
 REDIS_DATABASE=""
 GHCR_USERNAME=""
 GHCR_TOKEN=""
+OTP_ENABLED=""
+OTP_PROVIDER=""
+OTP_DEFAULT_CHANNEL=""
+TWILIO_ACCOUNT_SID=""
+TWILIO_AUTH_TOKEN=""
+TWILIO_VERIFY_SERVICE_SID=""
 
 if [[ "$#" -ge 1 && "$1" != --* && "$1" != -* ]]; then
   ENV="$1"; shift
@@ -68,6 +74,12 @@ while [[ "$#" -gt 0 ]]; do
     --redis-database)             REDIS_DATABASE="$2";             shift ;;
     --ghcr-username)              GHCR_USERNAME="$2";              shift ;;
     --ghcr-token)                 GHCR_TOKEN="$2";                 shift ;;
+    --otp-enabled)                OTP_ENABLED="$2";                shift ;;
+    --otp-provider)               OTP_PROVIDER="$2";               shift ;;
+    --otp-default-channel)        OTP_DEFAULT_CHANNEL="$2";        shift ;;
+    --twilio-account-sid)         TWILIO_ACCOUNT_SID="$2";         shift ;;
+    --twilio-auth-token)          TWILIO_AUTH_TOKEN="$2";          shift ;;
+    --twilio-verify-service-sid)  TWILIO_VERIFY_SERVICE_SID="$2";  shift ;;
     --github-repo)
       GITHUB_REPO="$2"
       export NHUB_GITHUB_REPO="$2"
@@ -127,6 +139,12 @@ if [[ ! -f "$SETUP_MARKER" ]]; then
   export NH_ARTEMIS_PASSWORD="${ARTEMIS_PASSWORD:-}"
   export NH_REDIS_PASSWORD="${REDIS_PASSWORD:-}"
   export NH_REDIS_DATABASE="${REDIS_DATABASE:-1}"
+  export NH_OTP_ENABLED="${OTP_ENABLED:-true}"
+  export NH_OTP_PROVIDER="${OTP_PROVIDER:-twilio-verify}"
+  export NH_OTP_DEFAULT_CHANNEL="${OTP_DEFAULT_CHANNEL:-SMS}"
+  export NH_TWILIO_ACCOUNT_SID="${TWILIO_ACCOUNT_SID:-}"
+  export NH_TWILIO_AUTH_TOKEN="${TWILIO_AUTH_TOKEN:-}"
+  export NH_TWILIO_VERIFY_SERVICE_SID="${TWILIO_VERIFY_SERVICE_SID:-}"
 
   bash "$DEPLOY_DIR/setup-server.sh"
   touch "$SETUP_MARKER"
@@ -156,6 +174,12 @@ export NH_MAIL_FROM="${MAIL_FROM:-}"
 export NH_ARTEMIS_PASSWORD="${ARTEMIS_PASSWORD:-}"
 export NH_REDIS_PASSWORD="${REDIS_PASSWORD:-}"
 export NH_REDIS_DATABASE="${REDIS_DATABASE:-}"
+export NH_OTP_ENABLED="${OTP_ENABLED:-true}"
+export NH_OTP_PROVIDER="${OTP_PROVIDER:-twilio-verify}"
+export NH_OTP_DEFAULT_CHANNEL="${OTP_DEFAULT_CHANNEL:-SMS}"
+export NH_TWILIO_ACCOUNT_SID="${TWILIO_ACCOUNT_SID:-}"
+export NH_TWILIO_AUTH_TOKEN="${TWILIO_AUTH_TOKEN:-}"
+export NH_TWILIO_VERIFY_SERVICE_SID="${TWILIO_VERIFY_SERVICE_SID:-}"
 
 bash "$DEPLOY_DIR/deploy.sh" "$ENV" "$FRONTEND_IMAGE" "$BACKEND_IMAGE"
 

@@ -82,13 +82,21 @@ _artemis_user="${NH_ARTEMIS_USER:-artemis}"
 _artemis_pass="${NH_ARTEMIS_PASSWORD:-CHANGE_ME_artemis_password}"
 _redis_pass="${NH_REDIS_PASSWORD:-CHANGE_ME_redis}"
 _redis_db="${NH_REDIS_DATABASE:-1}"
+_otp_enabled="${NH_OTP_ENABLED:-true}"
+_otp_provider="${NH_OTP_PROVIDER:-twilio-verify}"
+_otp_default_channel="${NH_OTP_DEFAULT_CHANNEL:-SMS}"
+_twilio_account_sid="${NH_TWILIO_ACCOUNT_SID:-}"
+_twilio_auth_token="${NH_TWILIO_AUTH_TOKEN:-}"
+_twilio_verify_sid="${NH_TWILIO_VERIFY_SERVICE_SID:-}"
 
 _db_pass_q="$(env_quote "$_db_pass")"
 _mail_pass_q="$(env_quote "$_mail_pass")"
 _mail_from_q="$(env_quote "$_mail_from")"
 _artemis_pass_q="$(env_quote "$_artemis_pass")"
 _redis_pass_q="$(env_quote "$_redis_pass")"
-_oidc_q="$(env_quote "$_oidc")"
+_twilio_account_sid_q="$(env_quote "$_twilio_account_sid")"
+_twilio_auth_token_q="$(env_quote "$_twilio_auth_token")"
+_twilio_verify_sid_q="$(env_quote "$_twilio_verify_sid")"
 
 PROD_ENV="$ROOT/prod/.env"
 if [[ ! -f "$PROD_ENV" ]]; then
@@ -119,6 +127,15 @@ MAIL_FROM=${_mail_from_q}
 
 SMS_PROVIDER=afriksms
 WHATSAPP_ENABLED=false
+
+# OTP — Twilio Verify (provider twilio-verify)
+OTP_ENABLED=${_otp_enabled}
+OTP_PROVIDER=${_otp_provider}
+OTP_DEFAULT_CHANNEL=${_otp_default_channel}
+TWILIO_ACCOUNT_SID=${_twilio_account_sid_q}
+TWILIO_AUTH_TOKEN=${_twilio_auth_token_q}
+TWILIO_VERIFY_SERVICE_SID=${_twilio_verify_sid_q}
+TWILIO_STATUS_CALLBACK_URL=https://${_api_host}/v1/webhooks/twilio
 
 FRONTEND_IMAGE=
 BACKEND_IMAGE=

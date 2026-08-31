@@ -122,6 +122,12 @@ jobs:
           PROD_MAIL_FROM: ${{ secrets.PROD_MAIL_FROM }}
           PROD_ARTEMIS_PASSWORD: ${{ secrets.PROD_ARTEMIS_PASSWORD }}
           PROD_REDIS_PASSWORD: ${{ secrets.PROD_REDIS_PASSWORD }}
+          PROD_OTP_ENABLED: ${{ secrets.PROD_OTP_ENABLED }}
+          PROD_OTP_PROVIDER: ${{ secrets.PROD_OTP_PROVIDER }}
+          PROD_OTP_DEFAULT_CHANNEL: ${{ secrets.PROD_OTP_DEFAULT_CHANNEL }}
+          PROD_TWILIO_ACCOUNT_SID: ${{ secrets.PROD_TWILIO_ACCOUNT_SID }}
+          PROD_TWILIO_AUTH_TOKEN: ${{ secrets.PROD_TWILIO_AUTH_TOKEN }}
+          PROD_TWILIO_VERIFY_SERVICE_SID: ${{ secrets.PROD_TWILIO_VERIFY_SERVICE_SID }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -157,6 +163,12 @@ jobs:
             --artemis-password "$PROD_ARTEMIS_PASSWORD"
             --redis-password "$PROD_REDIS_PASSWORD"
             --redis-database "1"
+            --otp-enabled "${PROD_OTP_ENABLED:-true}"
+            --otp-provider "${PROD_OTP_PROVIDER:-twilio-verify}"
+            --otp-default-channel "${PROD_OTP_DEFAULT_CHANNEL:-SMS}"
+            --twilio-account-sid "$PROD_TWILIO_ACCOUNT_SID"
+            --twilio-auth-token "$PROD_TWILIO_AUTH_TOKEN"
+            --twilio-verify-service-sid "$PROD_TWILIO_VERIFY_SERVICE_SID"
             --github-repo "$GITHUB_REPOSITORY"
           )
 
@@ -201,6 +213,12 @@ jobs:
           PROD_MAIL_FROM: ${{ secrets.PROD_MAIL_FROM }}
           PROD_ARTEMIS_PASSWORD: ${{ secrets.PROD_ARTEMIS_PASSWORD }}
           PROD_REDIS_PASSWORD: ${{ secrets.PROD_REDIS_PASSWORD }}
+          PROD_OTP_ENABLED: ${{ secrets.PROD_OTP_ENABLED }}
+          PROD_OTP_PROVIDER: ${{ secrets.PROD_OTP_PROVIDER }}
+          PROD_OTP_DEFAULT_CHANNEL: ${{ secrets.PROD_OTP_DEFAULT_CHANNEL }}
+          PROD_TWILIO_ACCOUNT_SID: ${{ secrets.PROD_TWILIO_ACCOUNT_SID }}
+          PROD_TWILIO_AUTH_TOKEN: ${{ secrets.PROD_TWILIO_AUTH_TOKEN }}
+          PROD_TWILIO_VERIFY_SERVICE_SID: ${{ secrets.PROD_TWILIO_VERIFY_SERVICE_SID }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -236,6 +254,12 @@ jobs:
             --artemis-password "$PROD_ARTEMIS_PASSWORD"
             --redis-password "$PROD_REDIS_PASSWORD"
             --redis-database "1"
+            --otp-enabled "${PROD_OTP_ENABLED:-true}"
+            --otp-provider "${PROD_OTP_PROVIDER:-twilio-verify}"
+            --otp-default-channel "${PROD_OTP_DEFAULT_CHANNEL:-SMS}"
+            --twilio-account-sid "$PROD_TWILIO_ACCOUNT_SID"
+            --twilio-auth-token "$PROD_TWILIO_AUTH_TOKEN"
+            --twilio-verify-service-sid "$PROD_TWILIO_VERIFY_SERVICE_SID"
             --github-repo "$GITHUB_REPOSITORY"
           )
 
