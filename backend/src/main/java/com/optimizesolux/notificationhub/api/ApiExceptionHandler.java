@@ -1,6 +1,6 @@
 package com.optimizesolux.notificationhub.api;
 
-import org.springframework.http.HttpStatus;
+import com.optimizesolux.notificationhub.otp.api.OtpResendCooldownException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -8,6 +8,17 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(OtpResendCooldownException.class)
+    ProblemDetail otpResendCooldown(OtpResendCooldownException ex) {
+        ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(
+                        HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+        problem.setTitle("Délai de renvoi OTP actif");
+        problem.setProperty("code", "OTP_RESEND_COOLDOWN");
+        problem.setProperty("retryAfterSeconds", ex.getRetryAfterSeconds());
+        return problem;
+    }
 
     @ExceptionHandler(OtpConfigurationException.class)
     ProblemDetail otpNotConfigured(OtpConfigurationException ex) {

@@ -17,7 +17,8 @@ public record NotificationHubProperties(
         Cors cors,
         Quota quota,
         CircuitBreaker circuitBreaker,
-        Cost cost) {
+        Cost cost,
+        Otp otp) {
     public NotificationHubProperties {
         if (queues == null) {
             queues = new Queues("nhub.email", "nhub.sms", "nhub.whatsapp", "nhub.dlq");
@@ -80,6 +81,17 @@ public record NotificationHubProperties(
         if (cost == null) {
             // EUR estimés par message (indicatif ops)
             cost = new Cost(0.0001, 0.04, 0.05);
+        }
+        if (otp == null) {
+            otp =
+                    new Otp(
+                            true,
+                            6,
+                            300,
+                            5,
+                            60,
+                            "WHATSAPP",
+                            "Votre code de verification est {{code}}. Valide {{ttlMinutes}} minutes.");
         }
     }
 
@@ -151,4 +163,24 @@ public record NotificationHubProperties(
 
     /** Coût estimé par message (devise indicative, pour KPI cockpit). */
     public record Cost(double email, double sms, double whatsapp) {}
+
+    /**
+     * OTP module — generate, store (Redis), verify, and dispatch via notification pipeline.
+     *
+     * @param enabled module actif
+     * @param length longueur du code numérique (4–8)
+     * @param ttlSeconds durée de validité en Redis
+     * @param maxVerifyAttempts tentatives de vérification avant invalidation
+     * @param resendCooldownSeconds délai minimum entre deux envois sur même destination
+     * @param defaultChannel WHATSAPP ou SMS si le client n'en précise pas
+     * @param smsBodyTemplate corps SMS avec {{code}} et {{ttlMinutes}}
+     */
+    public record Otp(
+            boolean enabled,
+            int length,
+            int ttlSeconds,
+            int maxVerifyAttempts,
+            int resendCooldownSeconds,
+            String defaultChannel,
+            String smsBodyTemplate) {}
 }

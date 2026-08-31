@@ -26,6 +26,7 @@ class ChannelAvailabilityServiceTest {
                         null,
                         null,
                         null,
+                        null,
                         null);
         ChannelAvailabilityService service = new ChannelAvailabilityService(props);
 

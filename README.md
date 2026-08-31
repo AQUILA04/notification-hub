@@ -48,6 +48,9 @@ SPI providers (changer Twilio ↔ AfrikSMS sans toucher au dispatch) :
 WhatsApp via Twilio (P2) :
 [backend/docs/WHATSAPP_TWILIO.md](backend/docs/WHATSAPP_TWILIO.md)
 
+Module OTP intégré (génération + vérification) :
+[backend/docs/OTP.md](backend/docs/OTP.md)
+
 ## Run API locally (profile `local`)
 
 Requires JDK **25** (Docker image uses 25; host may use a 25 toolchain).
@@ -144,6 +147,29 @@ Sans clés (dev) : `SMS_PROVIDER=logging`.
 
 WhatsApp est désactivé par défaut (`WHATSAPP_ENABLED=false`). Voir [backend/docs/WHATSAPP_TWILIO.md](backend/docs/WHATSAPP_TWILIO.md).
 
+**Recommandé — module OTP intégré** (génération + envoi + vérification) :
+
+```bash
+# .env — voir backend/docs/OTP.md
+WHATSAPP_ENABLED=true
+TWILIO_WHATSAPP_FROM=+14155238886
+TWILIO_WHATSAPP_OTP_CONTENT_SID=HX...
+
+# 1. Envoyer (le hub génère le code)
+curl -s -X POST http://localhost:8088/v1/otp/send \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: demo-tenant" \
+  -d '{"to": "+22890909090", "channel": "WHATSAPP"}'
+
+# 2. Vérifier (code saisi par l'utilisateur)
+curl -s -X POST http://localhost:8088/v1/otp/verify \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: demo-tenant" \
+  -d '{"to": "+22890909090", "code": "424242"}'
+```
+
+Alternative manuelle (code fourni par l'appelant) :
+
 Créer le template Meta OTP :
 
 ```powershell
@@ -153,13 +179,6 @@ $env:TWILIO_AUTH_TOKEN = "..."
 ```
 
 ```bash
-# .env
-WHATSAPP_ENABLED=true
-TWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
-TWILIO_WHATSAPP_FROM=+14155238886
-TWILIO_WHATSAPP_OTP_CONTENT_SID=HX...
-
 curl -s -X POST http://localhost:8088/v1/notifications \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: demo-tenant" \

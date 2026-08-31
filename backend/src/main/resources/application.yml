@@ -113,6 +113,14 @@ notification-hub:
     email: ${COST_EMAIL:0.0001}
     sms: ${COST_SMS:0.04}
     whatsapp: ${COST_WHATSAPP:0.05}
+  otp:
+    enabled: ${OTP_ENABLED:true}
+    length: ${OTP_LENGTH:6}
+    ttl-seconds: ${OTP_TTL_SECONDS:300}
+    max-verify-attempts: ${OTP_MAX_VERIFY_ATTEMPTS:5}
+    resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
+    default-channel: ${OTP_DEFAULT_CHANNEL:WHATSAPP}
+    sms-body-template: ${OTP_SMS_BODY_TEMPLATE:Votre code de verification est {{code}}. Valide {{ttlMinutes}} minutes.}
 
 logging:
   level:

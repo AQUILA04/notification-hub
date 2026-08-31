@@ -89,6 +89,37 @@ final class RestClientNotificationHubClient implements NotificationHubClient {
                 .body(new ParameterizedTypeReference<List<NotificationEventResponse>>() {});
     }
 
+    @Override
+    public OtpSendResponse sendOtp(OtpSendRequest request) {
+        return sendOtp(request, null);
+    }
+
+    @Override
+    public OtpSendResponse sendOtp(OtpSendRequest request, String idempotencyKey) {
+        return restClient
+                .post()
+                .uri("/v1/otp/send")
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(authAndTenantHeaders(idempotencyKey))
+                .body(request)
+                .retrieve()
+                .onStatus(this::isError, this::mapError)
+                .body(OtpSendResponse.class);
+    }
+
+    @Override
+    public OtpVerifyResponse verifyOtp(OtpVerifyRequest request) {
+        return restClient
+                .post()
+                .uri("/v1/otp/verify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(authAndTenantHeaders(null))
+                .body(request)
+                .retrieve()
+                .onStatus(this::isError, this::mapError)
+                .body(OtpVerifyResponse.class);
+    }
+
     private static java.net.URI buildListUri(
             UriBuilder uriBuilder,
             NotificationStatus status,

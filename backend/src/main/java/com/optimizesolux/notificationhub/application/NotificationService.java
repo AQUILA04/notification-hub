@@ -187,6 +187,8 @@ public class NotificationService {
     private void validateContent(CreateNotificationRequest request) {
         boolean isWhatsAppOtp =
                 request.channel() == Channel.WHATSAPP && request.messageType() == MessageType.OTP;
+        boolean isSmsOtp =
+                request.channel() == Channel.SMS && request.messageType() == MessageType.OTP;
         boolean hasBody = request.body() != null && !request.body().isBlank();
         boolean hasTemplate = request.templateName() != null && !request.templateName().isBlank();
         if (!hasBody && !hasTemplate) {
@@ -196,8 +198,14 @@ public class NotificationService {
             throw new IllegalArgumentException("Provide either body or templateName, not both");
         }
         if (request.from() == null || request.from().isBlank()) {
-            if (!isWhatsAppOtp) {
+            if (!isWhatsAppOtp && !isSmsOtp) {
                 throw new IllegalArgumentException("from is required");
+            }
+            if (isSmsOtp
+                    && (properties.sms().defaultFrom() == null
+                            || properties.sms().defaultFrom().isBlank())) {
+                throw new IllegalArgumentException(
+                        "SMS OTP requires from or SMS_DEFAULT_FROM configuration");
             }
         }
         if (request.channel() == Channel.EMAIL

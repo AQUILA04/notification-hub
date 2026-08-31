@@ -51,9 +51,19 @@ Référence Twilio : [whatsapp/authentication](https://www.twilio.com/docs/conte
 
 - Texte session 24h : `body`
 - Template Meta via Twilio Content : `templateName` = ContentSid (`HX…`) + `templateData`
-- **OTP WhatsApp** : `messageType=OTP` + `otpCode` — le hub résout automatiquement le ContentSid et `templateData={"1":"<code>"}`
+- **OTP WhatsApp (manuel)** : `messageType=OTP` + `otpCode` — voir ci-dessous
+- **OTP intégré (recommandé)** : `POST /v1/otp/send` + `POST /v1/otp/verify` — voir [OTP.md](OTP.md)
 
-### OTP WhatsApp (recommandé)
+### OTP intégré (génération hub)
+
+```bash
+curl -s -X POST http://localhost:8088/v1/otp/send \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: demo-tenant" \
+  -d '{"to": "+22890909090", "channel": "WHATSAPP"}'
+```
+
+### OTP WhatsApp (code fourni par le client)
 
 ```bash
 curl -s -X POST http://localhost:8088/v1/notifications \

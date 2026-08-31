@@ -33,6 +33,7 @@ class OtpRequestResolverTest {
                 null,
                 null,
                 null,
+                null,
                 null);
     }
 
@@ -165,6 +166,7 @@ class OtpRequestResolverTest {
                         null,
                         null,
                         null,
+                        null,
                         null);
 
         CreateNotificationRequest input =
@@ -200,6 +202,7 @@ class OtpRequestResolverTest {
                         null,
                         new NotificationHubProperties.Whatsapp(
                                 "twilio", null, null, null, null, CONTENT_SID),
+                        null,
                         null,
                         null,
                         null,
