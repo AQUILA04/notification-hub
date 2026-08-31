@@ -106,4 +106,36 @@ public class OrderNotifier {
 }
 ```
 
-Le bean `NotificationHubClient` expose aussi `get`, `list` et `events`.
+Le bean `NotificationHubClient` expose aussi `get`, `list`, `events`, **`sendOtp`** et **`verifyOtp`**.
+
+### OTP (envoi + vérification)
+
+Le hub génère et envoie le code ; votre app ne manipule jamais le code en clair côté serveur
+(sauf pour le transmettre à `/verify` après saisie utilisateur).
+
+```java
+@Service
+public class OtpLoginService {
+  private final NotificationHubClient hub;
+
+  public OtpLoginService(NotificationHubClient hub) {
+    this.hub = hub;
+  }
+
+  public void sendCode(String phoneE164) {
+    hub.sendOtp(OtpSendRequest.sms(phoneE164), UUID.randomUUID().toString());
+  }
+
+  public boolean checkCode(String phoneE164, String code) {
+    return hub.verifyOtp(OtpVerifyRequest.of(phoneE164, code)).valid();
+  }
+}
+```
+
+| Méthode client | Endpoint hub | HTTP |
+|----------------|--------------|------|
+| `sendOtp(request)` / `sendOtp(request, idempotencyKey)` | `POST /v1/otp/send` | 202 |
+| `verifyOtp(request)` | `POST /v1/otp/verify` | 200 |
+
+Guide complet (auth, schémas JSON, erreurs, curl, checklist) :
+[backend/docs/OTP_CLIENT_INTEGRATION.md](../backend/docs/OTP_CLIENT_INTEGRATION.md)

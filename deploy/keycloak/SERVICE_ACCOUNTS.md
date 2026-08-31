@@ -177,3 +177,7 @@ curl -s -X POST \
 - [ ] App utilise Client Credentials + `Authorization: Bearer`
 - [ ] App envoie `Idempotency-Key` sur chaque POST notification
 - [ ] `from` validé / autorisé côté métier (le hub exige le champ)
+- [ ] (OTP) Flux `POST /v1/otp/send` puis `POST /v1/otp/verify` documenté dans l'app
+- [ ] (OTP) Gestion des réponses `valid` / `reason` (`INVALID`, `EXPIRED`, `MAX_ATTEMPTS`)
+
+Voir [backend/docs/OTP_CLIENT_INTEGRATION.md](../../backend/docs/OTP_CLIENT_INTEGRATION.md).

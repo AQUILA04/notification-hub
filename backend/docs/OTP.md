@@ -1,5 +1,8 @@
 # Module OTP
 
+> **Intégration côté applications clientes** (API, Spring Boot, curl, checklist) :
+> [OTP_CLIENT_INTEGRATION.md](OTP_CLIENT_INTEGRATION.md)
+
 Le module OTP est intégré au Notification Hub. Deux providers :
 
 | Provider | Config | Usage |
