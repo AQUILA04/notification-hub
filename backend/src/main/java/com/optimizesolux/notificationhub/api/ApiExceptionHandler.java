@@ -9,6 +9,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    @ExceptionHandler(OtpConfigurationException.class)
+    ProblemDetail otpNotConfigured(OtpConfigurationException ex) {
+        ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        problem.setTitle("Configuration OTP WhatsApp incomplète");
+        problem.setProperty("code", "OTP_NOT_CONFIGURED");
+        return problem;
+    }
+
     @ExceptionHandler(ChannelNotEnabledException.class)
     ProblemDetail channelNotEnabled(ChannelNotEnabledException ex) {
         ProblemDetail problem =

@@ -92,6 +92,8 @@ notification-hub:
     account-sid: ${TWILIO_ACCOUNT_SID:}
     auth-token: ${TWILIO_AUTH_TOKEN:}
     status-callback-url: ${TWILIO_STATUS_CALLBACK_URL:}
+    default-from: ${TWILIO_WHATSAPP_FROM:}
+    otp-content-sid: ${TWILIO_WHATSAPP_OTP_CONTENT_SID:}
   cors:
     allowed-origins:
       - http://localhost:4200

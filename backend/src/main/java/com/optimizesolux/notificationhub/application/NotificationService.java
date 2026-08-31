@@ -8,6 +8,7 @@ import com.optimizesolux.notificationhub.api.dto.PageResponse;
 import com.optimizesolux.notificationhub.config.NotificationHubProperties;
 import com.optimizesolux.notificationhub.config.TenantContext;
 import com.optimizesolux.notificationhub.domain.Channel;
+import com.optimizesolux.notificationhub.domain.MessageType;
 import com.optimizesolux.notificationhub.domain.NotificationEventType;
 import com.optimizesolux.notificationhub.domain.NotificationStatus;
 import com.optimizesolux.notificationhub.domain.Priority;
@@ -58,8 +59,9 @@ public class NotificationService {
     public NotificationResponse create(
             CreateNotificationRequest request, String idempotencyKey, String appIdHeader) {
         String tenantId = TenantContext.require();
-        channelAvailabilityService.requireEnabled(request.channel());
-        validateContent(request);
+        CreateNotificationRequest normalized = OtpRequestResolver.resolve(request, properties);
+        channelAvailabilityService.requireEnabled(normalized.channel());
+        validateContent(normalized);
 
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             var existing =
@@ -69,13 +71,13 @@ public class NotificationService {
             }
         }
 
-        String appId = QuotaService.resolveAppId(request.metadata(), appIdHeader);
-        quotaService.checkAndConsume(tenantId, request.channel(), appId);
+        String appId = QuotaService.resolveAppId(normalized.metadata(), appIdHeader);
+        quotaService.checkAndConsume(tenantId, normalized.channel(), appId);
 
-        Priority priority = request.priority() != null ? request.priority() : Priority.NORMAL;
+        Priority priority = normalized.priority() != null ? normalized.priority() : Priority.NORMAL;
         int maxAttempts =
-                request.retryPolicy() != null && request.retryPolicy().maxAttempts() != null
-                        ? request.retryPolicy().maxAttempts()
+                normalized.retryPolicy() != null && normalized.retryPolicy().maxAttempts() != null
+                        ? normalized.retryPolicy().maxAttempts()
                         : properties.retry().defaultMaxAttempts();
 
         UUID id = UUID.randomUUID();
@@ -84,18 +86,18 @@ public class NotificationService {
         NotificationEntity entity = new NotificationEntity();
         entity.setId(id);
         entity.setTenantId(tenantId);
-        entity.setChannel(request.channel());
+        entity.setChannel(normalized.channel());
         entity.setStatus(NotificationStatus.RECEIVED);
-        entity.setFromAddress(request.from());
-        entity.setToAddresses(request.to());
-        entity.setSubject(request.subject());
-        entity.setBody(request.body());
-        entity.setTemplateName(request.templateName());
-        entity.setTemplateData(request.templateData());
+        entity.setFromAddress(normalized.from());
+        entity.setToAddresses(normalized.to());
+        entity.setSubject(normalized.subject());
+        entity.setBody(normalized.body());
+        entity.setTemplateName(normalized.templateName());
+        entity.setTemplateData(normalized.templateData());
         entity.setPriority(priority);
         entity.setMaxAttempts(maxAttempts);
         entity.setIdempotencyKey(idempotencyKey);
-        entity.setMetadata(request.metadata());
+        entity.setMetadata(normalized.metadata());
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         notificationRepository.save(entity);
@@ -105,19 +107,19 @@ public class NotificationService {
                 tenantId,
                 NotificationEventType.RECEIVED,
                 Map.of(
-                        "channel", request.channel().name(),
-                        "from", request.from(),
-                        "to", request.to()));
+                        "channel", normalized.channel().name(),
+                        "from", normalized.from(),
+                        "to", normalized.to()));
 
         OutboxMessageEntity outbox = new OutboxMessageEntity();
         outbox.setNotificationId(id);
         outbox.setTenantId(tenantId);
-        outbox.setChannel(request.channel());
+        outbox.setChannel(normalized.channel());
         outbox.setPriority(priority);
         Map<String, Object> payload = new HashMap<>();
         payload.put("notificationId", id.toString());
         payload.put("tenantId", tenantId);
-        payload.put("channel", request.channel().name());
+        payload.put("channel", normalized.channel().name());
         outbox.setPayload(payload);
         outboxMessageRepository.save(outbox);
 
@@ -132,7 +134,7 @@ public class NotificationService {
                 tenantId,
                 "NOTIFICATION_CREATE",
                 id.toString(),
-                Map.of("channel", request.channel().name(), "appId", appId));
+                Map.of("channel", normalized.channel().name(), "appId", appId));
 
         return toResponse(entity);
     }
@@ -183,6 +185,8 @@ public class NotificationService {
     }
 
     private void validateContent(CreateNotificationRequest request) {
+        boolean isWhatsAppOtp =
+                request.channel() == Channel.WHATSAPP && request.messageType() == MessageType.OTP;
         boolean hasBody = request.body() != null && !request.body().isBlank();
         boolean hasTemplate = request.templateName() != null && !request.templateName().isBlank();
         if (!hasBody && !hasTemplate) {
@@ -190,6 +194,11 @@ public class NotificationService {
         }
         if (hasBody && hasTemplate) {
             throw new IllegalArgumentException("Provide either body or templateName, not both");
+        }
+        if (request.from() == null || request.from().isBlank()) {
+            if (!isWhatsAppOtp) {
+                throw new IllegalArgumentException("from is required");
+            }
         }
         if (request.channel() == Channel.EMAIL
                 && (request.subject() == null || request.subject().isBlank())

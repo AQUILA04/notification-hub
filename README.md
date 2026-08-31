@@ -140,6 +140,37 @@ curl -s -X POST http://localhost:8088/v1/notifications \
 
 Sans clés (dev) : `SMS_PROVIDER=logging`.
 
+### Send WhatsApp OTP (Twilio)
+
+WhatsApp est désactivé par défaut (`WHATSAPP_ENABLED=false`). Voir [backend/docs/WHATSAPP_TWILIO.md](backend/docs/WHATSAPP_TWILIO.md).
+
+Créer le template Meta OTP :
+
+```powershell
+$env:TWILIO_ACCOUNT_SID = "AC..."
+$env:TWILIO_AUTH_TOKEN = "..."
+.\deploy\scripts\create-twilio-whatsapp-otp-template.ps1
+```
+
+```bash
+# .env
+WHATSAPP_ENABLED=true
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_WHATSAPP_FROM=+14155238886
+TWILIO_WHATSAPP_OTP_CONTENT_SID=HX...
+
+curl -s -X POST http://localhost:8088/v1/notifications \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: demo-tenant" \
+  -d '{
+    "channel": "WHATSAPP",
+    "messageType": "OTP",
+    "otpCode": "424242",
+    "to": ["+22890909090"]
+  }'
+```
+
 ### Admin KPI / list
 
 ```bash

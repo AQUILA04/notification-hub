@@ -16,12 +16,24 @@ public record CreateNotificationRequest(
         Map<String, Object> templateData,
         Priority priority,
         RetryPolicy retryPolicy,
-        Map<String, Object> metadata
+        Map<String, Object> metadata,
+        MessageType messageType,
+        String otpCode
 ) {
     public record RetryPolicy(Integer maxAttempts) {}
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    /** Convenience builder for WhatsApp OTP (uses hub-configured ContentSid and default from). */
+    public static CreateNotificationRequest whatsappOtp(String to, String otpCode) {
+        return builder()
+                .channel(Channel.WHATSAPP)
+                .to(to)
+                .messageType(MessageType.OTP)
+                .otpCode(otpCode)
+                .build();
     }
 
     public static final class Builder {
@@ -35,6 +47,8 @@ public record CreateNotificationRequest(
         private Priority priority;
         private RetryPolicy retryPolicy;
         private Map<String, Object> metadata;
+        private MessageType messageType;
+        private String otpCode;
 
         public Builder channel(Channel channel) {
             this.channel = channel;
@@ -91,6 +105,16 @@ public record CreateNotificationRequest(
             return this;
         }
 
+        public Builder messageType(MessageType messageType) {
+            this.messageType = messageType;
+            return this;
+        }
+
+        public Builder otpCode(String otpCode) {
+            this.otpCode = otpCode;
+            return this;
+        }
+
         public CreateNotificationRequest build() {
             return new CreateNotificationRequest(
                     channel,
@@ -102,7 +126,9 @@ public record CreateNotificationRequest(
                     templateData,
                     priority,
                     retryPolicy,
-                    metadata);
+                    metadata,
+                    messageType,
+                    otpCode);
         }
     }
 }

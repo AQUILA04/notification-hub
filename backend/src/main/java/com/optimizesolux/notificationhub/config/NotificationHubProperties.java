@@ -66,7 +66,7 @@ public record NotificationHubProperties(
             email = new Email("smtp");
         }
         if (whatsapp == null) {
-            whatsapp = new Whatsapp("twilio", null, null, null);
+            whatsapp = new Whatsapp("twilio", null, null, null, null, null);
         }
         if (cors == null) {
             cors = new Cors(new String[] {"http://localhost:4200"});
@@ -118,8 +118,16 @@ public record NotificationHubProperties(
      * @param accountSid Twilio SID (peut réutiliser TWILIO_ACCOUNT_SID)
      * @param authToken Twilio token
      * @param statusCallbackUrl URL publique webhook (optionnel)
+     * @param defaultFrom numéro WhatsApp expéditeur par défaut (sandbox ou prod)
+     * @param otpContentSid ContentSid Twilio (HX…) pour template whatsapp/authentication
      */
-    public record Whatsapp(String provider, String accountSid, String authToken, String statusCallbackUrl) {}
+    public record Whatsapp(
+            String provider,
+            String accountSid,
+            String authToken,
+            String statusCallbackUrl,
+            String defaultFrom,
+            String otpContentSid) {}
 
     public record Cors(String[] allowedOrigins) {}
 
