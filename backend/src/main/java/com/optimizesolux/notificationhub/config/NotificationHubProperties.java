@@ -47,9 +47,10 @@ public record NotificationHubProperties(
                             new AfrikSms(
                                     null,
                                     null,
-                                    "https://api.afriksms.com/api/web/web_v1/outbounds"));
+                                    "https://api.afriksms.com/api/web/web_v1/outbounds"),
+                            new BrevoSms(null, "https://api.brevo.com/v3", null));
         }
-        if (sms.afriksms() == null) {
+        if (sms.afriksms() == null || sms.brevo() == null) {
             sms =
                     new Sms(
                             sms.provider(),
@@ -58,10 +59,15 @@ public record NotificationHubProperties(
                             sms.httpUrl(),
                             sms.httpAuthHeader(),
                             sms.defaultFrom(),
-                            new AfrikSms(
-                                    null,
-                                    null,
-                                    "https://api.afriksms.com/api/web/web_v1/outbounds"));
+                            sms.afriksms() != null
+                                    ? sms.afriksms()
+                                    : new AfrikSms(
+                                            null,
+                                            null,
+                                            "https://api.afriksms.com/api/web/web_v1/outbounds"),
+                            sms.brevo() != null
+                                    ? sms.brevo()
+                                    : new BrevoSms(null, "https://api.brevo.com/v3", null));
         }
         if (email == null) {
             email = new Email("smtp");
@@ -112,7 +118,7 @@ public record NotificationHubProperties(
     public record Channels(boolean email, boolean sms, boolean whatsapp) {}
 
     /**
-     * @param provider logging (dev) | afriksms (prod SMS) | twilio (optionnel) | http
+     * @param provider logging (dev) | brevo | afriksms | twilio (optionnel) | http
      */
     public record Sms(
             String provider,
@@ -121,9 +127,19 @@ public record NotificationHubProperties(
             String httpUrl,
             String httpAuthHeader,
             String defaultFrom,
-            AfrikSms afriksms) {}
+            AfrikSms afriksms,
+            BrevoSms brevo) {}
 
     public record AfrikSms(String clientId, String apiKey, String baseUrl) {}
+
+    /**
+     * Brevo transactional SMS ({@code POST /v3/transactionalSMS/send}).
+     *
+     * @param apiKey clé API v3 (header {@code api-key})
+     * @param baseUrl base API (défaut https://api.brevo.com/v3)
+     * @param webhookUrl URL publique webUrl pour les callbacks delivery (optionnel)
+     */
+    public record BrevoSms(String apiKey, String baseUrl, String webhookUrl) {}
 
     /** @param provider smtp | brevo (future EmailProvider.id) */
     public record Email(String provider) {}

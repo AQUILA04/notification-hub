@@ -95,8 +95,10 @@ Réponse send inclut `provider: "twilio-verify"` et `providerReference: "VE…"`
 ```bash
 OTP_PROVIDER=internal
 OTP_DEFAULT_CHANNEL=SMS
-SMS_PROVIDER=afriksms
-SMS_DEFAULT_FROM=MyBrand
+SMS_PROVIDER=brevo
+BREVO_API_KEY=
+SMS_DEFAULT_FROM=OptimizeSLX
+# Alternative: AfrikSMS → SMS_PROVIDER=afriksms + AFRIKSMS_*
 ```
 
 WhatsApp internal nécessite `TWILIO_WHATSAPP_OTP_CONTENT_SID` (template Meta approuvé).

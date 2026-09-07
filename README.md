@@ -42,7 +42,7 @@ Clients d’intégration (monorepo) :
 - Maven Spring Boot starter : [`mvn/`](mvn/) (`sb-notification-hub-starter`)
 - `npm/` · `gradle/` — prévus au même niveau
 
-SPI providers (changer Twilio ↔ AfrikSMS sans toucher au dispatch) :
+SPI providers (changer Brevo ↔ AfrikSMS / Twilio sans toucher au dispatch) :
 [backend/docs/PROVIDERS.md](backend/docs/PROVIDERS.md)
 
 WhatsApp via Twilio (P2) :
@@ -122,29 +122,31 @@ Inspect Mailpit for delivered mail. Timeline:
 
 `GET /v1/notifications/{id}/events`
 
-### Send SMS (AfrikSMS)
+### Send SMS (Brevo)
 
-Stratégie : **SMS = AfrikSMS** · **WhatsApp = Twilio** (P2, pas de SMS Twilio).
+Stratégie : **SMS = Brevo** (transactionnel) · **WhatsApp = Twilio** (P2, pas de SMS Twilio).  
+AfrikSMS reste disponible via `SMS_PROVIDER=afriksms`.
 
 ```bash
 # .env
-SMS_PROVIDER=afriksms
-AFRIKSMS_CLIENT_ID=...
-AFRIKSMS_API_KEY=...
-SMS_DEFAULT_FROM=MyBrand
+SMS_PROVIDER=brevo
+BREVO_API_KEY=xkeysib-...
+SMS_DEFAULT_FROM=OptimizeSLX
+# optionnel (prod) :
+# BREVO_SMS_WEBHOOK_URL=https://notification-api.optimizesolux.com/v1/webhooks/brevo
 
 curl -s -X POST http://localhost:8088/v1/notifications \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: demo-tenant" \
   -d "{
     \"channel\": \"SMS\",
-    \"from\": \"MyBrand\",
+    \"from\": \"OptimizeSLX\",
     \"to\": [\"+22890909090\"],
     \"body\": \"OTP 4242\"
   }"
 ```
 
-Sans clés (dev) : `SMS_PROVIDER=logging`.
+Sans clés (dev) : `SMS_PROVIDER=logging`. Crédits prepaid Brevo requis pour un envoi réel.
 
 ### Send WhatsApp OTP (Twilio)
 
@@ -275,7 +277,7 @@ docker-compose.yml       Local autonomous stack (PG + Redis + Artemis + Mailpit 
 - [x] Artemis outbox → workers
 - [x] EMAIL via SMTP (Mailpit) + SPI EmailProvider
 - [x] Docker build behind Zscaler (`cert/ZscalerRootCA.pem`)
-- [x] SMS adapter SPI — **AfrikSMS** (prod) · logging (dev) · twilio/http optionnels
+- [x] SMS adapter SPI — **Brevo** (prod) · AfrikSMS · logging (dev) · twilio/http optionnels
 - [x] `GET /v1/admin/kpi`
 - [x] Angular 21 cockpit (dashboard, notifs, templates)
 - [x] Retry différé (`available_at` + priorité JMS + `_AMQ_SCHED_DELIVERY`)

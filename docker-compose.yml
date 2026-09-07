@@ -87,6 +87,9 @@ services:
       SMTP_PORT: 1025
       SMS_PROVIDER: ${SMS_PROVIDER:-logging}
       SMS_DEFAULT_FROM: ${SMS_DEFAULT_FROM:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      BREVO_BASE_URL: ${BREVO_BASE_URL:-https://api.brevo.com/v3}
+      BREVO_SMS_WEBHOOK_URL: ${BREVO_SMS_WEBHOOK_URL:-}
       AFRIKSMS_CLIENT_ID: ${AFRIKSMS_CLIENT_ID:-}
       AFRIKSMS_API_KEY: ${AFRIKSMS_API_KEY:-}
       AFRIKSMS_BASE_URL: ${AFRIKSMS_BASE_URL:-https://api.afriksms.com/api/web/web_v1/outbounds}

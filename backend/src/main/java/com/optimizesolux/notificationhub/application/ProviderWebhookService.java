@@ -70,4 +70,56 @@ public class ProviderWebhookService {
             notificationRepository.save(entity);
         }
     }
+
+    @Transactional
+    public void handleBrevoSmsStatus(String messageId, String msgStatus, String description) {
+        if (messageId == null || messageId.isBlank()) {
+            return;
+        }
+        String providerMessageId =
+                messageId.startsWith("brevo-") ? messageId : "brevo-" + messageId;
+        Optional<NotificationEntity> opt =
+                notificationRepository.findByProviderMessageId(providerMessageId);
+        if (opt.isEmpty()) {
+            // fallback: raw id if stored without prefix
+            opt = notificationRepository.findByProviderMessageId(messageId);
+        }
+        if (opt.isEmpty()) {
+            log.debug("Brevo SMS webhook unknown messageId={}", messageId);
+            return;
+        }
+        NotificationEntity entity = opt.get();
+        String status = msgStatus != null ? msgStatus.toLowerCase(Locale.ROOT) : "";
+
+        NotificationStatus mapped =
+                switch (status) {
+                    case "delivered" -> NotificationStatus.DELIVERED;
+                    case "hard_bounce", "soft_bounce", "rejected", "failed" -> NotificationStatus.FAILED;
+                    case "sent", "accepted" -> NotificationStatus.SENT;
+                    default -> null;
+                };
+
+        eventStoreService.append(
+                entity.getId(),
+                entity.getTenantId(),
+                NotificationEventType.PROVIDER_ACK,
+                Map.of(
+                        "provider",
+                        "brevo",
+                        "messageStatus",
+                        String.valueOf(msgStatus),
+                        "error",
+                        description != null ? description : ""));
+
+        if (mapped != null) {
+            entity.setStatus(mapped);
+            if (description != null
+                    && !description.isBlank()
+                    && mapped == NotificationStatus.FAILED) {
+                entity.setLastError(description);
+            }
+            entity.setUpdatedAt(Instant.now());
+            notificationRepository.save(entity);
+        }
+    }
 }

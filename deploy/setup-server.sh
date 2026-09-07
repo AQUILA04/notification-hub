@@ -125,7 +125,10 @@ MAIL_USER=${_mail_user}
 MAIL_PASS=${_mail_pass_q}
 MAIL_FROM=${_mail_from_q}
 
-SMS_PROVIDER=afriksms
+SMS_PROVIDER=brevo
+SMS_DEFAULT_FROM=OptimizeSLX
+BREVO_API_KEY=
+BREVO_SMS_WEBHOOK_URL=https://notification-api.optimizesolux.com/v1/webhooks/brevo
 WHATSAPP_ENABLED=false
 
 # OTP — Twilio Verify (provider twilio-verify)

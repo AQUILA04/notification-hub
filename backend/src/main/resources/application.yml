@@ -74,7 +74,7 @@ notification-hub:
     # false par défaut — POST WHATSAPP → 422 CHANNEL_NOT_ENABLED
     whatsapp: ${WHATSAPP_ENABLED:false}
   sms:
-    # Prod target: afriksms | Local smoke without keys: logging
+    # Prod target: brevo | afriksms | Local smoke without keys: logging
     provider: ${SMS_PROVIDER:logging}
     account-sid: ${TWILIO_ACCOUNT_SID:}
     auth-token: ${TWILIO_AUTH_TOKEN:}
@@ -85,6 +85,10 @@ notification-hub:
       client-id: ${AFRIKSMS_CLIENT_ID:}
       api-key: ${AFRIKSMS_API_KEY:}
       base-url: ${AFRIKSMS_BASE_URL:https://api.afriksms.com/api/web/web_v1/outbounds}
+    brevo:
+      api-key: ${BREVO_API_KEY:}
+      base-url: ${BREVO_BASE_URL:https://api.brevo.com/v3}
+      webhook-url: ${BREVO_SMS_WEBHOOK_URL:}
   email:
     provider: ${EMAIL_PROVIDER:smtp}
   whatsapp:

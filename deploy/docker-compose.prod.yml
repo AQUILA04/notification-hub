@@ -58,8 +58,11 @@ services:
       SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
       OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-https://auth.optimizesolux.com/realms/notification-hub}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
-      SMS_PROVIDER: ${SMS_PROVIDER:-afriksms}
-      SMS_DEFAULT_FROM: ${SMS_DEFAULT_FROM:-}
+      SMS_PROVIDER: ${SMS_PROVIDER:-brevo}
+      SMS_DEFAULT_FROM: ${SMS_DEFAULT_FROM:-OptimizeSLX}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      BREVO_BASE_URL: ${BREVO_BASE_URL:-https://api.brevo.com/v3}
+      BREVO_SMS_WEBHOOK_URL: ${BREVO_SMS_WEBHOOK_URL:-}
       AFRIKSMS_CLIENT_ID: ${AFRIKSMS_CLIENT_ID:-}
       AFRIKSMS_API_KEY: ${AFRIKSMS_API_KEY:-}
       WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
