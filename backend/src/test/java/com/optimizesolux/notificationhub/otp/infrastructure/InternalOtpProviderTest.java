@@ -106,7 +106,7 @@ class InternalOtpProviderTest {
                 null,
                 null,
                 new NotificationHubProperties.Sms(
-                        "logging", null, null, null, null, "MyBrand", null),
+                        "logging", null, null, null, null, "MyBrand", null, null),
                 null,
                 null,
                 null,
