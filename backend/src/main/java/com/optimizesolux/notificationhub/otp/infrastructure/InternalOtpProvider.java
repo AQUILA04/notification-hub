@@ -8,6 +8,7 @@ import com.optimizesolux.notificationhub.config.NotificationHubProperties;
 import com.optimizesolux.notificationhub.config.TenantContext;
 import com.optimizesolux.notificationhub.domain.Channel;
 import com.optimizesolux.notificationhub.domain.MessageType;
+import com.optimizesolux.notificationhub.domain.NotificationEnvironment;
 import com.optimizesolux.notificationhub.otp.api.dto.OtpSendRequest;
 import com.optimizesolux.notificationhub.otp.api.dto.OtpSendResponse;
 import com.optimizesolux.notificationhub.otp.api.dto.OtpVerifyRequest;
@@ -60,10 +61,11 @@ public class InternalOtpProvider implements OtpProvider {
         String destination = PhoneNormalizer.normalize(request.to());
         Duration ttl = Duration.ofSeconds(otpConfig.ttlSeconds());
         Duration cooldown = Duration.ofSeconds(otpConfig.resendCooldownSeconds());
+        NotificationEnvironment environment = NotificationEnvironment.from(request.environment());
 
         otpStore.enforceResendCooldown(tenantId, channel, destination, cooldown);
 
-        if (channel == Channel.SMS) {
+        if (channel == Channel.SMS && environment.isProd()) {
             String smsFrom = properties.sms().defaultFrom();
             if (smsFrom == null || smsFrom.isBlank()) {
                 throw new IllegalStateException(
@@ -90,7 +92,7 @@ public class InternalOtpProvider implements OtpProvider {
         metadata.put("messageType", MessageType.OTP.name());
 
         CreateNotificationRequest notification =
-                buildNotificationRequest(channel, destination, code, metadata, otpConfig);
+                buildNotificationRequest(channel, destination, code, metadata, otpConfig, environment);
         NotificationResponse sent =
                 notificationService.create(notification, idempotencyKey, appIdHeader);
 
@@ -104,18 +106,18 @@ public class InternalOtpProvider implements OtpProvider {
                 sessionId, expiresAt, sent.id(), channel, id(), sessionId.toString());
     }
 
+    public boolean hasActiveSession(OtpVerifyRequest request) {
+        return findSession(request).isPresent();
+    }
+
     @Override
     public OtpVerifyResponse verify(OtpVerifyRequest request) {
         NotificationHubProperties.Otp otpConfig = properties.otp();
         String tenantId = TenantContext.require();
-        Channel channel = resolveChannel(request.channel(), otpConfig);
         String destination = PhoneNormalizer.normalize(request.to());
         Duration ttl = Duration.ofSeconds(otpConfig.ttlSeconds());
 
-        Optional<OtpSession> session =
-                request.sessionId() != null
-                        ? otpStore.findBySessionId(tenantId, request.sessionId())
-                        : otpStore.findByDestination(tenantId, channel, destination);
+        Optional<OtpSession> session = findSession(request);
 
         if (session.isEmpty()) {
             auditService.record(
@@ -136,7 +138,7 @@ public class InternalOtpProvider implements OtpProvider {
 
         if (OtpHasher.matches(tenantId, destination, request.code(), active.codeHash())) {
             otpStore.delete(tenantId, active.channel(), destination, active.sessionId());
-            otpStore.clearFailedAttempts(tenantId, channel, destination);
+            otpStore.clearFailedAttempts(tenantId, active.channel(), destination);
             auditService.record(
                     tenantId,
                     "OTP_VERIFY",
@@ -145,10 +147,10 @@ public class InternalOtpProvider implements OtpProvider {
             return OtpVerifyResponse.success();
         }
 
-        int attempts = otpStore.incrementFailedAttempts(tenantId, channel, destination, ttl);
+        int attempts = otpStore.incrementFailedAttempts(tenantId, active.channel(), destination, ttl);
         if (attempts >= otpConfig.maxVerifyAttempts()) {
             otpStore.delete(tenantId, active.channel(), destination, active.sessionId());
-            otpStore.clearFailedAttempts(tenantId, channel, destination);
+            otpStore.clearFailedAttempts(tenantId, active.channel(), destination);
             auditService.record(
                     tenantId,
                     "OTP_VERIFY",
@@ -170,7 +172,8 @@ public class InternalOtpProvider implements OtpProvider {
             String destination,
             String code,
             Map<String, Object> metadata,
-            NotificationHubProperties.Otp otpConfig) {
+            NotificationHubProperties.Otp otpConfig,
+            NotificationEnvironment environment) {
         if (channel == Channel.WHATSAPP) {
             return new CreateNotificationRequest(
                     Channel.WHATSAPP,
@@ -184,7 +187,8 @@ public class InternalOtpProvider implements OtpProvider {
                     null,
                     metadata,
                     MessageType.OTP,
-                    code);
+                    code,
+                    environment);
         }
         String body =
                 otpConfig
@@ -204,7 +208,25 @@ public class InternalOtpProvider implements OtpProvider {
                 null,
                 metadata,
                 MessageType.OTP,
-                code);
+                code,
+                environment);
+    }
+
+    private Optional<OtpSession> findSession(OtpVerifyRequest request) {
+        String tenantId = TenantContext.require();
+        if (request.sessionId() != null) {
+            return otpStore.findBySessionId(tenantId, request.sessionId());
+        }
+        String destination = PhoneNormalizer.normalize(request.to());
+        Channel channel = resolveChannel(request.channel(), properties.otp());
+        Optional<OtpSession> found = otpStore.findByDestination(tenantId, channel, destination);
+        if (found.isPresent()) {
+            return found;
+        }
+        if (channel != Channel.SMS) {
+            return otpStore.findByDestination(tenantId, Channel.SMS, destination);
+        }
+        return found;
     }
 
     private Channel resolveChannel(Channel requested, NotificationHubProperties.Otp otpConfig) {

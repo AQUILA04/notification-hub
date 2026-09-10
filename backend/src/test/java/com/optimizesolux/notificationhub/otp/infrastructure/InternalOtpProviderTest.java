@@ -68,6 +68,7 @@ class InternalOtpProviderTest {
                                 notificationId,
                                 TENANT,
                                 Channel.SMS,
+                                com.optimizesolux.notificationhub.domain.NotificationEnvironment.TEST,
                                 NotificationStatus.QUEUED,
                                 "MyBrand",
                                 java.util.List.of(DEST),
@@ -106,7 +107,7 @@ class InternalOtpProviderTest {
                 null,
                 null,
                 new NotificationHubProperties.Sms(
-                        "logging", null, null, null, null, "MyBrand", null, null),
+                        "logging", null, null, null, null, "MyBrand", null, null, null),
                 null,
                 null,
                 null,

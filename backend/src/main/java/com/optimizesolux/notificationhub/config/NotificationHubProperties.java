@@ -48,9 +48,10 @@ public record NotificationHubProperties(
                                     null,
                                     null,
                                     "https://api.afriksms.com/api/web/web_v1/outbounds"),
-                            new BrevoSms(null, "https://api.brevo.com/v3", null));
+                            new BrevoSms(null, "https://api.brevo.com/v3", null),
+                            defaultSmsTest());
         }
-        if (sms.afriksms() == null || sms.brevo() == null) {
+        if (sms.afriksms() == null || sms.brevo() == null || sms.test() == null) {
             sms =
                     new Sms(
                             sms.provider(),
@@ -67,7 +68,8 @@ public record NotificationHubProperties(
                                             "https://api.afriksms.com/api/web/web_v1/outbounds"),
                             sms.brevo() != null
                                     ? sms.brevo()
-                                    : new BrevoSms(null, "https://api.brevo.com/v3", null));
+                                    : new BrevoSms(null, "https://api.brevo.com/v3", null),
+                            sms.test() != null ? sms.test() : defaultSmsTest());
         }
         if (email == null) {
             email = new Email("smtp");
@@ -117,8 +119,13 @@ public record NotificationHubProperties(
     /** Activation métier des canaux exposés aux apps clientes. */
     public record Channels(boolean email, boolean sms, boolean whatsapp) {}
 
+    private static SmsTest defaultSmsTest() {
+        return new SmsTest("sms-test@notification-hub.local", null);
+    }
+
     /**
      * @param provider logging (dev) | brevo | afriksms | twilio (optionnel) | http
+     * @param test intercept Mailpit (SMTP) when the client env is not {@code prod}
      */
     public record Sms(
             String provider,
@@ -128,7 +135,17 @@ public record NotificationHubProperties(
             String httpAuthHeader,
             String defaultFrom,
             AfrikSms afriksms,
-            BrevoSms brevo) {}
+            BrevoSms brevo,
+            SmsTest test) {}
+
+    /**
+     * SMS test intercept — delivered via the configured SMTP (Mailpit locally) instead of a paid SMS
+     * provider.
+     *
+     * @param mailFrom expéditeur SMTP
+     * @param mailTo destinataire unique optionnel ; si vide, un destinataire est dérivé du numéro
+     */
+    public record SmsTest(String mailFrom, String mailTo) {}
 
     public record AfrikSms(String clientId, String apiKey, String baseUrl) {}
 

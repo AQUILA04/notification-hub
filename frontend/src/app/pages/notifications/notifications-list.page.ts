@@ -46,6 +46,7 @@ import {
           <tr>
             <th>Référence</th>
             <th>Canal</th>
+            <th>Env</th>
             <th>Statut</th>
             <th>Destinataires</th>
             <th>Créée</th>
@@ -61,13 +62,14 @@ import {
                 }
               </td>
               <td>{{ n.channel }}</td>
+              <td>{{ n.environment || '—' }}</td>
               <td><span class="pill" [attr.data-s]="n.status">{{ label(n.status) }}</span></td>
               <td>{{ n.to.join(', ') }}</td>
               <td>{{ n.createdAt | date: 'short' }}</td>
             </tr>
           } @empty {
             <tr>
-              <td colspan="5" class="empty">Aucune notification</td>
+              <td colspan="6" class="empty">Aucune notification</td>
             </tr>
           }
         </tbody>

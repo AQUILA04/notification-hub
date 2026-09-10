@@ -108,6 +108,42 @@ public class OrderNotifier {
 
 Le bean `NotificationHubClient` expose aussi `get`, `list`, `events`, **`sendOtp`** et **`verifyOtp`**.
 
+### Environnement SMS (`test` / `prod`)
+
+Pour le canal **SMS** (notifications et OTP), le hub exige un `environment` :
+
+| Valeur | Effet |
+|--------|--------|
+| omis / `test` / autre chose que `prod` | **Pas de SMS réel** — message intercepté vers **Mailpit** (SMTP du hub) |
+| `prod` | SMS réel (Brevo / provider configuré) |
+
+Le starter **injecte automatiquement** cette valeur d’après le profil Spring Boot actif :
+
+- profil `prod` ou `production` → `environment=prod`
+- tout autre profil (`local`, `dev`, `test`, défaut, …) → `environment=test`
+
+Surcharge optionnelle :
+
+```yaml
+optimize:
+  notification:
+    hub:
+      environment: test   # force test même avec spring.profiles.active=prod
+```
+
+Un `environment` déjà posé sur `CreateNotificationRequest` / `OtpSendRequest` n’est **pas** écrasé.
+
+```java
+hub.send(
+    CreateNotificationRequest.builder()
+        .channel(Channel.SMS)
+        .from("OptimizeSLX")
+        .to("+22890909090")
+        .body("OTP 4242")
+        .build(),              // environment injecté = test hors profil prod
+    UUID.randomUUID().toString());
+```
+
 ### OTP (envoi + vérification)
 
 Le hub génère et envoie le code ; votre app ne manipule jamais le code en clair côté serveur

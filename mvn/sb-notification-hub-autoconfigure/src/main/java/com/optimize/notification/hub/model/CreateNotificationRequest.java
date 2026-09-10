@@ -18,9 +18,27 @@ public record CreateNotificationRequest(
         RetryPolicy retryPolicy,
         Map<String, Object> metadata,
         MessageType messageType,
-        String otpCode
+        String otpCode,
+        NotificationEnvironment environment
 ) {
     public record RetryPolicy(Integer maxAttempts) {}
+
+    public CreateNotificationRequest withEnvironment(NotificationEnvironment environment) {
+        return new CreateNotificationRequest(
+                channel,
+                from,
+                to,
+                subject,
+                body,
+                templateName,
+                templateData,
+                priority,
+                retryPolicy,
+                metadata,
+                messageType,
+                otpCode,
+                environment);
+    }
 
     public static Builder builder() {
         return new Builder();
@@ -49,6 +67,7 @@ public record CreateNotificationRequest(
         private Map<String, Object> metadata;
         private MessageType messageType;
         private String otpCode;
+        private NotificationEnvironment environment;
 
         public Builder channel(Channel channel) {
             this.channel = channel;
@@ -115,6 +134,11 @@ public record CreateNotificationRequest(
             return this;
         }
 
+        public Builder environment(NotificationEnvironment environment) {
+            this.environment = environment;
+            return this;
+        }
+
         public CreateNotificationRequest build() {
             return new CreateNotificationRequest(
                     channel,
@@ -128,7 +152,8 @@ public record CreateNotificationRequest(
                     retryPolicy,
                     metadata,
                     messageType,
-                    otpCode);
+                    otpCode,
+                    environment);
         }
     }
 }

@@ -1,4 +1,5 @@
 export type Channel = 'EMAIL' | 'SMS' | 'WHATSAPP';
+export type NotificationEnvironment = 'test' | 'prod' | 'TEST' | 'PROD';
 export type NotificationStatus =
   | 'RECEIVED'
   | 'QUEUED'
@@ -16,6 +17,7 @@ export interface NotificationItem {
   id: string;
   tenantId: string;
   channel: Channel;
+  environment?: NotificationEnvironment | null;
   status: NotificationStatus;
   from: string;
   to: string[];

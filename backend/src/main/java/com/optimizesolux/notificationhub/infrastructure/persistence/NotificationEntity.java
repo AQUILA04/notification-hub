@@ -1,6 +1,7 @@
 package com.optimizesolux.notificationhub.infrastructure.persistence;
 
 import com.optimizesolux.notificationhub.domain.Channel;
+import com.optimizesolux.notificationhub.domain.NotificationEnvironment;
 import com.optimizesolux.notificationhub.domain.NotificationStatus;
 import com.optimizesolux.notificationhub.domain.Priority;
 import jakarta.persistence.Column;
@@ -30,6 +31,10 @@ public class NotificationEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Channel channel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private NotificationEnvironment environment = NotificationEnvironment.TEST;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
@@ -109,6 +114,14 @@ public class NotificationEntity {
 
     public void setChannel(Channel channel) {
         this.channel = channel;
+    }
+
+    public NotificationEnvironment getEnvironment() {
+        return environment;
+    }
+
+    public void setEnvironment(NotificationEnvironment environment) {
+        this.environment = environment == null ? NotificationEnvironment.TEST : environment;
     }
 
     public NotificationStatus getStatus() {

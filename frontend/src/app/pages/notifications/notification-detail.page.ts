@@ -28,6 +28,7 @@ import { NotificationEvent, NotificationItem, statusLabel } from '../../core/mod
           <dl>
             <div><dt>From</dt><dd>{{ n.from }}</dd></div>
             <div><dt>To</dt><dd>{{ n.to.join(', ') }}</dd></div>
+            <div><dt>Environnement</dt><dd>{{ n.environment || 'test' }}</dd></div>
             <div><dt>Priorité</dt><dd>{{ n.priority }}</dd></div>
             <div><dt>Tentatives</dt><dd>{{ n.attemptCount }} / {{ n.maxAttempts }}</dd></div>
             <div><dt>Créée</dt><dd>{{ n.createdAt | date: 'medium' }}</dd></div>

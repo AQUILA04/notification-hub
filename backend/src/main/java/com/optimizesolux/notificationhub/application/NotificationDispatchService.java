@@ -2,6 +2,7 @@ package com.optimizesolux.notificationhub.application;
 
 import com.optimizesolux.notificationhub.config.NotificationHubProperties;
 import com.optimizesolux.notificationhub.domain.Channel;
+import com.optimizesolux.notificationhub.domain.NotificationEnvironment;
 import com.optimizesolux.notificationhub.domain.NotificationEventType;
 import com.optimizesolux.notificationhub.domain.NotificationStatus;
 import com.optimizesolux.notificationhub.infrastructure.messaging.DispatchMessage;
@@ -11,6 +12,7 @@ import com.optimizesolux.notificationhub.infrastructure.persistence.OutboxMessag
 import com.optimizesolux.notificationhub.infrastructure.persistence.OutboxMessageRepository;
 import com.optimizesolux.notificationhub.infrastructure.persistence.TemplateEntity;
 import com.optimizesolux.notificationhub.infrastructure.provider.ChannelSenderRegistry;
+import com.optimizesolux.notificationhub.infrastructure.provider.MailpitSmsBridge;
 import com.optimizesolux.notificationhub.infrastructure.provider.WhatsAppChannelSender;
 import com.optimizesolux.notificationhub.infrastructure.template.PebbleTemplateRenderer;
 import org.slf4j.Logger;
@@ -35,6 +37,7 @@ public class NotificationDispatchService {
     private final TemplateService templateService;
     private final PebbleTemplateRenderer renderer;
     private final ChannelSenderRegistry channelSenderRegistry;
+    private final MailpitSmsBridge mailpitSmsBridge;
     private final NotificationHubProperties properties;
     private final CircuitBreakerService circuitBreakerService;
 
@@ -45,6 +48,7 @@ public class NotificationDispatchService {
             TemplateService templateService,
             PebbleTemplateRenderer renderer,
             ChannelSenderRegistry channelSenderRegistry,
+            MailpitSmsBridge mailpitSmsBridge,
             NotificationHubProperties properties,
             CircuitBreakerService circuitBreakerService) {
         this.notificationRepository = notificationRepository;
@@ -53,6 +57,7 @@ public class NotificationDispatchService {
         this.templateService = templateService;
         this.renderer = renderer;
         this.channelSenderRegistry = channelSenderRegistry;
+        this.mailpitSmsBridge = mailpitSmsBridge;
         this.properties = properties;
         this.circuitBreakerService = circuitBreakerService;
     }
@@ -132,13 +137,13 @@ public class NotificationDispatchService {
                 notificationRepository.save(entity);
             }
 
-            String circuitKey = circuitKey(entity.getChannel());
+            String circuitKey = circuitKey(entity);
             circuitBreakerService.beforeCall(circuitKey);
             String providerId;
             try {
                 providerId =
                         send(
-                                entity.getChannel(),
+                                entity,
                                 entity.getFromAddress(),
                                 entity.getToAddresses(),
                                 subject,
@@ -157,11 +162,17 @@ public class NotificationDispatchService {
             entity.setUpdatedAt(Instant.now());
             notificationRepository.save(entity);
 
+            Map<String, Object> successPayload = new HashMap<>();
+            successPayload.put("providerMessageId", providerId);
+            if (isSmsTestIntercept(entity)) {
+                successPayload.put("intercepted", true);
+                successPayload.put("via", "mailpit");
+            }
             eventStoreService.append(
                     entity.getId(),
                     entity.getTenantId(),
                     NotificationEventType.ATTEMPT_SUCCEEDED,
-                    Map.of("providerMessageId", providerId));
+                    successPayload);
         } catch (Exception ex) {
             log.error("Dispatch failed for {}: {}", entity.getId(), ex.getMessage());
             entity.setLastError(ex.getMessage());
@@ -193,14 +204,17 @@ public class NotificationDispatchService {
     }
 
     private String send(
-            Channel channel,
+            NotificationEntity entity,
             String from,
             java.util.List<String> to,
             String subject,
             String body,
             Map<String, Object> templateData)
             throws Exception {
-        var sender = channelSenderRegistry.require(channel);
+        if (isSmsTestIntercept(entity)) {
+            return mailpitSmsBridge.send(from, to, body);
+        }
+        var sender = channelSenderRegistry.require(entity.getChannel());
         if (sender instanceof WhatsAppChannelSender whatsApp) {
             return whatsApp.sendWithTemplateData(from, to, body, templateData);
         }
@@ -243,7 +257,15 @@ public class NotificationDispatchService {
         return Math.min(max, (long) raw);
     }
 
-    private String circuitKey(Channel channel) {
+    private String circuitKey(NotificationEntity entity) {
+        if (isSmsTestIntercept(entity)) {
+            String emailProvider =
+                    properties.email() != null && properties.email().provider() != null
+                            ? properties.email().provider()
+                            : "smtp";
+            return "sms:mailpit:" + emailProvider;
+        }
+        Channel channel = entity.getChannel();
         String provider =
                 switch (channel) {
                     case EMAIL -> properties.email().provider();
@@ -251,5 +273,10 @@ public class NotificationDispatchService {
                     case WHATSAPP -> properties.whatsapp().provider();
                 };
         return channel.name().toLowerCase() + ":" + provider;
+    }
+
+    static boolean isSmsTestIntercept(NotificationEntity entity) {
+        return entity.getChannel() == Channel.SMS
+                && !NotificationEnvironment.from(entity.getEnvironment()).isProd();
     }
 }

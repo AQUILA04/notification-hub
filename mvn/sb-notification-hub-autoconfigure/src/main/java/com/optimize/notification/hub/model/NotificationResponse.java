@@ -9,6 +9,7 @@ public record NotificationResponse(
         UUID id,
         String tenantId,
         Channel channel,
+        NotificationEnvironment environment,
         NotificationStatus status,
         String from,
         List<String> to,
