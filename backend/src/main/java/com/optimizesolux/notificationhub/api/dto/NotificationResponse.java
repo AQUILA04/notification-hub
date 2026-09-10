@@ -1,6 +1,7 @@
 package com.optimizesolux.notificationhub.api.dto;
 
 import com.optimizesolux.notificationhub.domain.Channel;
+import com.optimizesolux.notificationhub.domain.NotificationEnvironment;
 import com.optimizesolux.notificationhub.domain.NotificationStatus;
 import com.optimizesolux.notificationhub.domain.Priority;
 
@@ -13,6 +14,7 @@ public record NotificationResponse(
         UUID id,
         String tenantId,
         Channel channel,
+        NotificationEnvironment environment,
         NotificationStatus status,
         String from,
         List<String> to,

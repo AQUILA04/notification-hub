@@ -12,6 +12,8 @@ AfrikSMS reste dans le SPI (`SMS_PROVIDER=afriksms`) si besoin.
 
 Local sans clés : `SMS_PROVIDER=logging`.
 
+Les clients doivent envoyer `environment` (`test` par défaut, `prod` pour un vrai SMS). Tant que `environment` ≠ `prod`, le hub intercepte le SMS vers **sms@optimizesolux.com** via le SMTP du hub (Mailpit en local, Resend en prod) — aucun crédit SMS consommé. Voir [README](../../README.md) et [mvn/README.md](../../mvn/README.md).
+
 ## Config SMS Brevo
 
 ```yaml

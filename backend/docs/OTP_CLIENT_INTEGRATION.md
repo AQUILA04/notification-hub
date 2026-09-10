@@ -104,6 +104,7 @@ Demande l’envoi d’un code OTP au numéro indiqué.
 {
   "to": "+22890909090",
   "channel": "SMS",
+  "environment": "test",
   "metadata": {}
 }
 ```
@@ -112,6 +113,7 @@ Demande l’envoi d’un code OTP au numéro indiqué.
 |-------|------|-------------|-------------|
 | `to` | string | **Oui** | Numéro au format **E.164** (`+228…`, `+33…`) |
 | `channel` | string | Non | `SMS` ou `WHATSAPP`. Si omis : canal par défaut du hub (`OTP_DEFAULT_CHANNEL`, souvent `SMS` en prod) |
+| `environment` | string | Non | `test` (défaut) ou `prod`. **SMS uniquement** : si ≠ `prod`, aucun SMS réel — copie email à **sms@optimizesolux.com**. WhatsApp ignore ce champ. |
 | `metadata` | object | Non | Métadonnées libres (réservé usage futur / audit) |
 
 ### Réponse — `202 Accepted`
@@ -143,7 +145,7 @@ curl -s -X POST "https://notification-api.optimizesolux.com/v1/otp/send" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
-  -d '{"to": "+22890909090", "channel": "SMS"}'
+  -d '{"to": "+22890909090", "channel": "SMS", "environment": "test"}'
 ```
 
 ### Exemple curl (local)
@@ -153,7 +155,7 @@ curl -s -X POST "http://localhost:8088/v1/otp/send" \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: demo-tenant" \
   -H "Idempotency-Key: demo-otp-1" \
-  -d '{"to": "+22890909090"}'
+  -d '{"to": "+22890909090", "environment": "test"}'
 ```
 
 ---
@@ -248,7 +250,10 @@ optimize:
         token-uri: https://notification-auth.optimizesolux.com/realms/notification-hub/protocol/openid-connect/token
         client-id: clean-track-pro
         client-secret: ${NOTIFICATION_HUB_CLIENT_SECRET}
+      # environment: omis → dérivé du profil Spring (prod/production → prod, sinon test)
 ```
+
+Le starter injecte `environment` sur `send` / `sendOtp` (SMS). Profil `local`/`dev`/`test` → email de recette (`sms@optimizesolux.com`), pas de crédit SMS. Profil `prod` → SMS réel.
 
 ### Exemple de service métier
 
@@ -322,6 +327,7 @@ Renouvelez le JWT avant expiration (typiquement 5–15 min selon la config realm
 5. **Rate limiting UX** — limiter les clics « Renvoyer » côté UI (ex. 60 s) même si le hub autorise plus.
 6. **Tenant** — une app = un client Keycloak = un `tenant_id` ; ne pas mélanger les tenants.
 7. **Canal** — en prod actuelle le défaut est **SMS** ; passer `"channel": "WHATSAPP"` uniquement quand le sender WhatsApp prod est validé par la plateforme.
+8. **Environnement SMS** — omettre `environment` (défaut `test`) tant que vous n’êtes pas prêts à consommer des crédits. Le starter Spring le dérive du profil actif. Pour un vrai SMS : `"environment": "prod"` (ou profil `prod`). Les envois test arrivent sur **sms@optimizesolux.com** (Mailpit http://localhost:8025 en local, Resend en prod).
 
 ---
 
@@ -337,6 +343,7 @@ Si le hub pointe vers un compte Twilio **Trial**, seuls les numéros **vérifié
 - [ ] Claim `tenant_id` présent dans le JWT
 - [ ] Secret client stocké hors git (variable d’env / vault)
 - [ ] `optimize.notification.hub.base-url` pointant vers la bonne URL
+- [ ] Profil Spring / `environment` : `test` (email `sms@optimizesolux.com`) en recette, `prod` seulement pour les vrais SMS
 - [ ] Flux UI : saisie numéro → `send` → saisie code → `verify`
 - [ ] Gestion des `reason` : `INVALID`, `EXPIRED`, `MAX_ATTEMPTS`
 - [ ] `Idempotency-Key` sur chaque `send`

@@ -29,6 +29,12 @@
       "description": "Optional X-Tenant-Id header (local/dev when JWT tenant claim is absent)."
     },
     {
+      "name": "optimize.notification.hub.environment",
+      "type": "java.lang.String",
+      "description": "Client delivery environment for SMS (test|prod). When unset, derived from the active Spring profile (prod/production → prod, otherwise test).",
+      "defaultValue": "test"
+    },
+    {
       "name": "optimize.notification.hub.connect-timeout-ms",
       "type": "java.lang.Integer",
       "description": "HTTP connect timeout in milliseconds.",
@@ -68,5 +74,19 @@
       "defaultValue": 30
     }
   ],
-  "hints": []
+  "hints": [
+    {
+      "name": "optimize.notification.hub.environment",
+      "values": [
+        {
+          "value": "test",
+          "description": "Email the SMS to sms@optimizesolux.com (no paid SMS)."
+        },
+        {
+          "value": "prod",
+          "description": "Send a real SMS via the configured provider."
+        }
+      ]
+    }
+  ]
 }

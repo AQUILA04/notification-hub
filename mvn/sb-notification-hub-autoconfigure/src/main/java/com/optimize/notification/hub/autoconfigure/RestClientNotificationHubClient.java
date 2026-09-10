@@ -4,6 +4,7 @@ import com.optimize.notification.hub.client.NotificationHubClient;
 import com.optimize.notification.hub.client.NotificationHubClientException;
 import com.optimize.notification.hub.model.Channel;
 import com.optimize.notification.hub.model.CreateNotificationRequest;
+import com.optimize.notification.hub.model.NotificationEnvironment;
 import com.optimize.notification.hub.model.NotificationEventResponse;
 import com.optimize.notification.hub.model.NotificationResponse;
 import com.optimize.notification.hub.model.NotificationStatus;
@@ -31,14 +32,18 @@ final class RestClientNotificationHubClient implements NotificationHubClient {
     private final RestClient restClient;
     private final ClientCredentialsTokenProvider tokenProvider;
     private final String tenantId;
+    private final NotificationEnvironment defaultEnvironment;
 
     RestClientNotificationHubClient(
             RestClient restClient,
             ClientCredentialsTokenProvider tokenProvider,
-            String tenantId) {
+            String tenantId,
+            NotificationEnvironment defaultEnvironment) {
         this.restClient = restClient;
         this.tokenProvider = tokenProvider;
         this.tenantId = tenantId;
+        this.defaultEnvironment =
+                defaultEnvironment != null ? defaultEnvironment : NotificationEnvironment.TEST;
     }
 
     @Override
@@ -53,7 +58,7 @@ final class RestClientNotificationHubClient implements NotificationHubClient {
                 .uri("/v1/notifications")
                 .contentType(MediaType.APPLICATION_JSON)
                 .headers(authAndTenantHeaders(idempotencyKey))
-                .body(request)
+                .body(withEnvironment(request))
                 .retrieve()
                 .onStatus(this::isError, this::mapError)
                 .body(NotificationResponse.class);
@@ -105,7 +110,7 @@ final class RestClientNotificationHubClient implements NotificationHubClient {
                 .uri("/v1/otp/send")
                 .contentType(MediaType.APPLICATION_JSON)
                 .headers(authAndTenantHeaders(idempotencyKey))
-                .body(request)
+                .body(withEnvironment(request))
                 .retrieve()
                 .onStatus(this::isError, this::mapError)
                 .body(OtpSendResponse.class);
@@ -138,6 +143,20 @@ final class RestClientNotificationHubClient implements NotificationHubClient {
             uriBuilder.queryParam("channel", channel.name());
         }
         return uriBuilder.build();
+    }
+
+    private CreateNotificationRequest withEnvironment(CreateNotificationRequest request) {
+        if (request == null || request.environment() != null) {
+            return request;
+        }
+        return request.withEnvironment(defaultEnvironment);
+    }
+
+    private OtpSendRequest withEnvironment(OtpSendRequest request) {
+        if (request == null || request.environment() != null) {
+            return request;
+        }
+        return request.withEnvironment(defaultEnvironment);
     }
 
     private Consumer<HttpHeaders> authAndTenantHeaders(String idempotencyKey) {

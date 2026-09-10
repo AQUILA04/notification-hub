@@ -22,6 +22,8 @@ public interface NotificationHubClient {
 
     /**
      * Creates a notification (async accept — Hub returns {@code 202 ACCEPTED}).
+     * For {@code SMS}, omit {@code environment} to let the starter inject {@code test} or {@code prod}
+     * from the active Spring profile.
      */
     NotificationResponse send(CreateNotificationRequest request);
 
@@ -42,6 +44,8 @@ public interface NotificationHubClient {
 
     /**
      * Generates an OTP, stores it server-side, and dispatches it (WhatsApp or SMS).
+     * SMS uses the client environment ({@code test} by default): non-prod traffic is emailed to
+     * {@code sms@optimizesolux.com} instead of a paid SMS provider.
      */
     OtpSendResponse sendOtp(OtpSendRequest request);
 

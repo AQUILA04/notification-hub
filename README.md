@@ -127,6 +127,15 @@ Inspect Mailpit for delivered mail. Timeline:
 Stratégie : **SMS = Brevo** (transactionnel) · **WhatsApp = Twilio** (P2, pas de SMS Twilio).  
 AfrikSMS reste disponible via `SMS_PROVIDER=afriksms`.
 
+Le champ **`environment`** (`test` | `prod`) contrôle l’envoi réel :
+
+| `environment` | Comportement SMS |
+|---------------|------------------|
+| omis / `test` / toute valeur ≠ `prod` | **Aucun SMS réel** — copie email à **sms@optimizesolux.com** via le SMTP du hub (Mailpit en local, **Resend** en prod) |
+| `prod` | SMS réel via Brevo / AfrikSMS / provider configuré |
+
+Défaut : **`test`**. En local, inspectez http://localhost:8025. En prod, ouvrez la boîte `sms@optimizesolux.com`.
+
 ```bash
 # .env
 SMS_PROVIDER=brevo
@@ -134,19 +143,37 @@ BREVO_API_KEY=xkeysib-...
 SMS_DEFAULT_FROM=OptimizeSLX
 # optionnel (prod) :
 # BREVO_SMS_WEBHOOK_URL=https://notification-api.optimizesolux.com/v1/webhooks/brevo
+# optionnel intercept test (SMTP du hub → sms@optimizesolux.com) :
+# SMS_TEST_MAIL_FROM=noreply@optimizesolux.com
+# SMS_TEST_MAIL_TO=sms@optimizesolux.com
 
+# Test (défaut) — email de recette, pas de crédit SMS
 curl -s -X POST http://localhost:8088/v1/notifications \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: demo-tenant" \
   -d "{
     \"channel\": \"SMS\",
+    \"environment\": \"test\",
+    \"from\": \"OptimizeSLX\",
+    \"to\": [\"+22890909090\"],
+    \"body\": \"OTP 4242\"
+  }"
+
+# Prod — vrai SMS
+curl -s -X POST http://localhost:8088/v1/notifications \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: demo-tenant" \
+  -d "{
+    \"channel\": \"SMS\",
+    \"environment\": \"prod\",
     \"from\": \"OptimizeSLX\",
     \"to\": [\"+22890909090\"],
     \"body\": \"OTP 4242\"
   }"
 ```
 
-Sans clés (dev) : `SMS_PROVIDER=logging`. Crédits prepaid Brevo requis pour un envoi réel.
+Sans clés (dev) : `SMS_PROVIDER=logging`. Crédits prepaid Brevo requis pour un envoi **`prod`**.
+Le starter Spring Boot injecte `environment` depuis le profil actif (`prod`/`production` → `prod`, sinon `test`).
 
 ### Send WhatsApp OTP (Twilio)
 

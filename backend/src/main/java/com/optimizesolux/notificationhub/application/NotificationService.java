@@ -9,6 +9,7 @@ import com.optimizesolux.notificationhub.config.NotificationHubProperties;
 import com.optimizesolux.notificationhub.config.TenantContext;
 import com.optimizesolux.notificationhub.domain.Channel;
 import com.optimizesolux.notificationhub.domain.MessageType;
+import com.optimizesolux.notificationhub.domain.NotificationEnvironment;
 import com.optimizesolux.notificationhub.domain.NotificationEventType;
 import com.optimizesolux.notificationhub.domain.NotificationStatus;
 import com.optimizesolux.notificationhub.domain.Priority;
@@ -61,7 +62,8 @@ public class NotificationService {
         String tenantId = TenantContext.require();
         CreateNotificationRequest normalized = OtpRequestResolver.resolve(request, properties);
         channelAvailabilityService.requireEnabled(normalized.channel());
-        validateContent(normalized);
+        NotificationEnvironment environment = NotificationEnvironment.from(normalized.environment());
+        validateContent(normalized, environment);
 
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             var existing =
@@ -87,8 +89,9 @@ public class NotificationService {
         entity.setId(id);
         entity.setTenantId(tenantId);
         entity.setChannel(normalized.channel());
+        entity.setEnvironment(environment);
         entity.setStatus(NotificationStatus.RECEIVED);
-        entity.setFromAddress(normalized.from());
+        entity.setFromAddress(resolveFrom(normalized, environment));
         entity.setToAddresses(normalized.to());
         entity.setSubject(normalized.subject());
         entity.setBody(normalized.body());
@@ -108,7 +111,8 @@ public class NotificationService {
                 NotificationEventType.RECEIVED,
                 Map.of(
                         "channel", normalized.channel().name(),
-                        "from", normalized.from(),
+                        "environment", environment.toJson(),
+                        "from", entity.getFromAddress(),
                         "to", normalized.to()));
 
         OutboxMessageEntity outbox = new OutboxMessageEntity();
@@ -134,7 +138,13 @@ public class NotificationService {
                 tenantId,
                 "NOTIFICATION_CREATE",
                 id.toString(),
-                Map.of("channel", normalized.channel().name(), "appId", appId));
+                Map.of(
+                        "channel",
+                        normalized.channel().name(),
+                        "environment",
+                        environment.toJson(),
+                        "appId",
+                        appId));
 
         return toResponse(entity);
     }
@@ -184,11 +194,14 @@ public class NotificationService {
                 .orElseThrow(() -> new NotFoundException("Notification not found: " + id));
     }
 
-    private void validateContent(CreateNotificationRequest request) {
+    private void validateContent(
+            CreateNotificationRequest request, NotificationEnvironment environment) {
         boolean isWhatsAppOtp =
                 request.channel() == Channel.WHATSAPP && request.messageType() == MessageType.OTP;
         boolean isSmsOtp =
                 request.channel() == Channel.SMS && request.messageType() == MessageType.OTP;
+        boolean smsTestIntercept =
+                request.channel() == Channel.SMS && !environment.isProd();
         boolean hasBody = request.body() != null && !request.body().isBlank();
         boolean hasTemplate = request.templateName() != null && !request.templateName().isBlank();
         if (!hasBody && !hasTemplate) {
@@ -198,10 +211,11 @@ public class NotificationService {
             throw new IllegalArgumentException("Provide either body or templateName, not both");
         }
         if (request.from() == null || request.from().isBlank()) {
-            if (!isWhatsAppOtp && !isSmsOtp) {
+            if (!isWhatsAppOtp && !isSmsOtp && !smsTestIntercept) {
                 throw new IllegalArgumentException("from is required");
             }
             if (isSmsOtp
+                    && !smsTestIntercept
                     && (properties.sms().defaultFrom() == null
                             || properties.sms().defaultFrom().isBlank())) {
                 throw new IllegalArgumentException(
@@ -223,11 +237,29 @@ public class NotificationService {
         }
     }
 
+    private String resolveFrom(
+            CreateNotificationRequest request, NotificationEnvironment environment) {
+        if (request.from() != null && !request.from().isBlank()) {
+            return request.from();
+        }
+        if (request.channel() == Channel.SMS) {
+            String defaultFrom = properties.sms() != null ? properties.sms().defaultFrom() : null;
+            if (defaultFrom != null && !defaultFrom.isBlank()) {
+                return defaultFrom;
+            }
+            if (!environment.isProd()) {
+                return "SMS-TEST";
+            }
+        }
+        return request.from();
+    }
+
     static NotificationResponse toResponse(NotificationEntity e) {
         return new NotificationResponse(
                 e.getId(),
                 e.getTenantId(),
                 e.getChannel(),
+                NotificationEnvironment.from(e.getEnvironment()),
                 e.getStatus(),
                 e.getFromAddress(),
                 e.getToAddresses(),

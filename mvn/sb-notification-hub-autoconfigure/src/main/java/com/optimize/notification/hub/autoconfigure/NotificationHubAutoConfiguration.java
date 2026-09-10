@@ -2,12 +2,14 @@ package com.optimize.notification.hub.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.optimize.notification.hub.client.NotificationHubClient;
+import com.optimize.notification.hub.model.NotificationEnvironment;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.util.Assert;
@@ -53,7 +55,8 @@ public class NotificationHubAutoConfiguration {
     NotificationHubClient notificationHubClient(
             NotificationHubProperties properties,
             ObjectProvider<ClientCredentialsTokenProvider> tokenProvider,
-            ObjectProvider<RestClient.Builder> restClientBuilderProvider) {
+            ObjectProvider<RestClient.Builder> restClientBuilderProvider,
+            Environment environment) {
         Assert.hasText(properties.getBaseUrl(), "optimize.notification.hub.base-url must be set");
 
         if (properties.getOauth2().isEnabled()) {
@@ -72,10 +75,14 @@ public class NotificationHubAutoConfiguration {
                 .requestFactory(requestFactory(properties))
                 .build();
 
+        NotificationEnvironment hubEnvironment =
+                NotificationEnvironmentResolver.resolve(environment, properties.getEnvironment());
+
         return new RestClientNotificationHubClient(
                 restClient,
                 properties.getOauth2().isEnabled() ? tokenProvider.getObject() : null,
-                properties.getTenantId());
+                properties.getTenantId(),
+                hubEnvironment);
     }
 
     private static ClientHttpRequestFactory requestFactory(NotificationHubProperties properties) {

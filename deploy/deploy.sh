@@ -146,6 +146,8 @@ if [[ "$ENV" == "prod" ]]; then
   set_env_var_if_missing MAIL_PORT "465"
   set_env_var_if_missing MAIL_USER "resend"
   set_env_var_if_missing MAIL_FROM "Notification Hub <noreply@optimizesolux.com>"
+  set_env_var_if_missing SMS_TEST_MAIL_FROM "noreply@optimizesolux.com"
+  set_env_var_if_missing SMS_TEST_MAIL_TO "sms@optimizesolux.com"
   set_env_var_if_missing ARTEMIS_USER "artemis"
   set_env_var_if_missing REDIS_DATABASE "1"
 fi

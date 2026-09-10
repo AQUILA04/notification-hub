@@ -84,6 +84,7 @@ public final class OtpRequestResolver {
                 request.retryPolicy(),
                 metadata,
                 request.messageType(),
-                otpCode);
+                otpCode,
+                request.environment());
     }
 }

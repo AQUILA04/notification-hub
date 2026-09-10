@@ -81,6 +81,9 @@ notification-hub:
     http-url: ${SMS_HTTP_URL:}
     http-auth-header: ${SMS_HTTP_AUTH:}
     default-from: ${SMS_DEFAULT_FROM:}
+    test:
+      mail-from: ${SMS_TEST_MAIL_FROM:noreply@optimizesolux.com}
+      mail-to: ${SMS_TEST_MAIL_TO:sms@optimizesolux.com}
     afriksms:
       client-id: ${AFRIKSMS_CLIENT_ID:}
       api-key: ${AFRIKSMS_API_KEY:}

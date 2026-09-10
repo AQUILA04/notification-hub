@@ -12,6 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *       enabled: true
  *       base-url: http://localhost:8088
  *       tenant-id: demo-tenant   # optional; sent as X-Tenant-Id (local/dev)
+ *       environment: test        # optional; default from Spring profile (prod → prod, else test)
  *       oauth2:
  *         enabled: true
  *         token-uri: http://localhost:8081/realms/notification-hub/protocol/openid-connect/token
@@ -37,6 +38,13 @@ public class NotificationHubProperties {
      * In production the tenant usually comes from the service-account JWT claim.
      */
     private String tenantId;
+
+    /**
+     * Client delivery environment ({@code test} or {@code prod}) injected on SMS / OTP SMS calls.
+     * When unset, derived from the active Spring profile ({@code prod}/{@code production} → prod,
+     * otherwise test).
+     */
+    private String environment;
 
     /**
      * Connect timeout in milliseconds for Hub and token HTTP calls.
@@ -72,6 +80,14 @@ public class NotificationHubProperties {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public String getEnvironment() {
+        return environment;
+    }
+
+    public void setEnvironment(String environment) {
+        this.environment = environment;
     }
 
     public int getConnectTimeoutMs() {
