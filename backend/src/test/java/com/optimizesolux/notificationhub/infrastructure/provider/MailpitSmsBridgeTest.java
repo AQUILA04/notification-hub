@@ -24,16 +24,13 @@ class MailpitSmsBridgeTest {
 
     @Test
     void resolveMailToUsesConfiguredInbox() {
-        assertEquals(
-                List.of("devs@example.com"),
-                MailpitSmsBridge.resolveMailTo(List.of("+22890909090"), "devs@example.com"));
+        assertEquals("devs@example.com", MailpitSmsBridge.resolveMailTo("devs@example.com"));
     }
 
     @Test
-    void resolveMailToDerivesAddressFromPhone() {
-        assertEquals(
-                List.of("22890909090@sms.test.notification-hub.local"),
-                MailpitSmsBridge.resolveMailTo(List.of("+228 90 90 90 90"), null));
+    void resolveMailToDefaultsToSmsInbox() {
+        assertEquals("sms@optimizesolux.com", MailpitSmsBridge.resolveMailTo(null));
+        assertEquals("sms@optimizesolux.com", MailpitSmsBridge.resolveMailTo("  "));
     }
 
     @Test
@@ -52,8 +49,8 @@ class MailpitSmsBridgeTest {
         assertEquals("smtp-1", id);
         verify(emailProvider)
                 .send(
-                        eq("sms-test@notification-hub.local"),
-                        eq(List.of("22890909090@sms.test.notification-hub.local")),
+                        eq("noreply@optimizesolux.com"),
+                        eq(List.of("sms@optimizesolux.com")),
                         eq("[SMS TEST] +22890909090"),
                         org.mockito.ArgumentMatchers.argThat(
                                 html -> html.contains("OTP 4242") && html.contains("OptimizeSLX")));

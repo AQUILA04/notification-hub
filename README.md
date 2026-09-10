@@ -131,10 +131,10 @@ Le champ **`environment`** (`test` | `prod`) contrôle l’envoi réel :
 
 | `environment` | Comportement SMS |
 |---------------|------------------|
-| omis / `test` / toute valeur ≠ `prod` | **Aucun SMS réel** — le message est envoyé à **Mailpit** (SMTP) pour économiser les crédits |
+| omis / `test` / toute valeur ≠ `prod` | **Aucun SMS réel** — copie email à **sms@optimizesolux.com** via le SMTP du hub (Mailpit en local, **Resend** en prod) |
 | `prod` | SMS réel via Brevo / AfrikSMS / provider configuré |
 
-Défaut : **`test`**. En local, inspectez http://localhost:8025.
+Défaut : **`test`**. En local, inspectez http://localhost:8025. En prod, ouvrez la boîte `sms@optimizesolux.com`.
 
 ```bash
 # .env
@@ -143,11 +143,11 @@ BREVO_API_KEY=xkeysib-...
 SMS_DEFAULT_FROM=OptimizeSLX
 # optionnel (prod) :
 # BREVO_SMS_WEBHOOK_URL=https://notification-api.optimizesolux.com/v1/webhooks/brevo
-# optionnel intercept test :
-# SMS_TEST_MAIL_FROM=sms-test@notification-hub.local
-# SMS_TEST_MAIL_TO=devs@example.com
+# optionnel intercept test (SMTP du hub → sms@optimizesolux.com) :
+# SMS_TEST_MAIL_FROM=noreply@optimizesolux.com
+# SMS_TEST_MAIL_TO=sms@optimizesolux.com
 
-# Test (défaut) — Mailpit, pas de crédit SMS
+# Test (défaut) — email de recette, pas de crédit SMS
 curl -s -X POST http://localhost:8088/v1/notifications \
   -H "Content-Type: application/json" \
   -H "X-Tenant-Id: demo-tenant" \

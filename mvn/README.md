@@ -114,7 +114,7 @@ Pour le canal **SMS** (notifications et OTP), le hub exige un `environment` :
 
 | Valeur | Effet |
 |--------|--------|
-| omis / `test` / autre chose que `prod` | **Pas de SMS réel** — message intercepté vers **Mailpit** (SMTP du hub) |
+| omis / `test` / autre chose que `prod` | **Pas de SMS réel** — email à **sms@optimizesolux.com** (SMTP du hub : Mailpit en local, Resend en prod) |
 | `prod` | SMS réel (Brevo / provider configuré) |
 
 Le starter **injecte automatiquement** cette valeur d’après le profil Spring Boot actif :

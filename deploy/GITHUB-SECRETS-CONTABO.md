@@ -45,6 +45,8 @@ Réutilise la même clé SSH que SharedTraefik / CleanTrack si possible.
 Le CD injecte ces secrets dans `/opt/notification-hub/prod/.env` à chaque déploiement (`CT_UPDATE_ENV_SECRETS=true`).
 `TWILIO_STATUS_CALLBACK_URL` est dérivé automatiquement : `https://<PROD_API_HOSTNAME>/v1/webhooks/twilio`.
 
+SMS `environment=test` : même SMTP Resend, destinataire **sms@optimizesolux.com** (pas de second SMTP / Mailpit produit).
+
 Créer aussi l’**environment** GitHub Actions nommé `prod` (approvals optionnels).
 
 Obsolètes (ne plus utiliser) : `PROD_KEYCLOAK_ADMIN_PASSWORD`, `PROD_KEYCLOAK_HOSTNAME`.

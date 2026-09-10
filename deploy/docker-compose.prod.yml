@@ -56,6 +56,9 @@ services:
       SMTP_PASSWORD: ${MAIL_PASS:-}
       SMTP_AUTH: "true"
       SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      # SMS test intercept (environment ≠ prod) — même SMTP Resend, boîte recette
+      SMS_TEST_MAIL_FROM: ${SMS_TEST_MAIL_FROM:-noreply@optimizesolux.com}
+      SMS_TEST_MAIL_TO: ${SMS_TEST_MAIL_TO:-sms@optimizesolux.com}
       OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-https://auth.optimizesolux.com/realms/notification-hub}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
       SMS_PROVIDER: ${SMS_PROVIDER:-brevo}

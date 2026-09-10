@@ -33,7 +33,7 @@ public class OtpService {
         NotificationEnvironment environment = NotificationEnvironment.from(request.environment());
         Channel channel = resolveChannel(request.channel());
         if (channel == Channel.SMS && !environment.isProd()) {
-            // Avoid Twilio/Brevo SMS spend: generate locally and dispatch via Mailpit.
+            // Avoid Twilio/Brevo SMS spend: generate locally and dispatch via email intercept.
             return internalOtpProvider.send(request, idempotencyKey, appIdHeader);
         }
         return providerRegistry.require().send(request, idempotencyKey, appIdHeader);

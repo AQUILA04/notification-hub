@@ -9,7 +9,7 @@ import java.util.Locale;
  * Delivery environment for paid channels (SMS).
  *
  * <p>{@code prod} sends a real SMS. Any other value is {@code test}: the hub delivers the
- * payload to Mailpit instead of consuming SMS credits.
+ * payload is emailed to {@code sms@optimizesolux.com} instead of consuming SMS credits.
  */
 public enum NotificationEnvironment {
     TEST,

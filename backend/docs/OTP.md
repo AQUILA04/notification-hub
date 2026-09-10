@@ -21,7 +21,7 @@ X-Tenant-Id: demo-tenant
 { "to": "+22890909090", "channel": "SMS" }
 ```
 
-`environment` omis = **`test`** : le SMS OTP n’est **pas** envoyé par Twilio/Brevo — le hub génère le code (provider `internal`) et le dépose dans **Mailpit**.  
+`environment` omis = **`test`** : le SMS OTP n’est **pas** envoyé par Twilio/Brevo — le hub génère le code (provider `internal`) et envoie une copie email à **sms@optimizesolux.com**.  
 Pour un vrai SMS : `{ "to": "+22890909090", "channel": "SMS", "environment": "prod" }`.
 
 ### Vérifier

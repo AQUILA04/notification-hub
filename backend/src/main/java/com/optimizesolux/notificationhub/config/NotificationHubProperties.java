@@ -120,12 +120,12 @@ public record NotificationHubProperties(
     public record Channels(boolean email, boolean sms, boolean whatsapp) {}
 
     private static SmsTest defaultSmsTest() {
-        return new SmsTest("sms-test@notification-hub.local", null);
+        return new SmsTest("noreply@optimizesolux.com", "sms@optimizesolux.com");
     }
 
     /**
      * @param provider logging (dev) | brevo | afriksms | twilio (optionnel) | http
-     * @param test intercept Mailpit (SMTP) when the client env is not {@code prod}
+     * @param test intercept email (SMTP du hub) when the client env is not {@code prod}
      */
     public record Sms(
             String provider,
@@ -139,11 +139,11 @@ public record NotificationHubProperties(
             SmsTest test) {}
 
     /**
-     * SMS test intercept — delivered via the configured SMTP (Mailpit locally) instead of a paid SMS
-     * provider.
+     * SMS test intercept — delivered via the hub SMTP (Mailpit locally, Resend in prod) instead of a
+     * paid SMS provider.
      *
-     * @param mailFrom expéditeur SMTP
-     * @param mailTo destinataire unique optionnel ; si vide, un destinataire est dérivé du numéro
+     * @param mailFrom expéditeur SMTP (domaine vérifié Resend en prod)
+     * @param mailTo boîte de recette (défaut {@code sms@optimizesolux.com})
      */
     public record SmsTest(String mailFrom, String mailTo) {}
 

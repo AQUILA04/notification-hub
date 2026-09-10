@@ -125,6 +125,10 @@ MAIL_USER=${_mail_user}
 MAIL_PASS=${_mail_pass_q}
 MAIL_FROM=${_mail_from_q}
 
+# SMS test intercept — email via Resend (pas de SMS réel)
+SMS_TEST_MAIL_FROM=noreply@optimizesolux.com
+SMS_TEST_MAIL_TO=sms@optimizesolux.com
+
 SMS_PROVIDER=brevo
 SMS_DEFAULT_FROM=OptimizeSLX
 BREVO_API_KEY=

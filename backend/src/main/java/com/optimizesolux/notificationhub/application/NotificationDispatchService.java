@@ -166,7 +166,7 @@ public class NotificationDispatchService {
             successPayload.put("providerMessageId", providerId);
             if (isSmsTestIntercept(entity)) {
                 successPayload.put("intercepted", true);
-                successPayload.put("via", "mailpit");
+                successPayload.put("via", "email");
             }
             eventStoreService.append(
                     entity.getId(),
@@ -263,7 +263,7 @@ public class NotificationDispatchService {
                     properties.email() != null && properties.email().provider() != null
                             ? properties.email().provider()
                             : "smtp";
-            return "sms:mailpit:" + emailProvider;
+            return "sms:test-email:" + emailProvider;
         }
         Channel channel = entity.getChannel();
         String provider =

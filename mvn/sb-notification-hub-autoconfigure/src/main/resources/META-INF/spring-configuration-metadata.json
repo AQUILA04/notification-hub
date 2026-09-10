@@ -80,7 +80,7 @@
       "values": [
         {
           "value": "test",
-          "description": "Intercept SMS to Mailpit (SMTP); no paid SMS."
+          "description": "Email the SMS to sms@optimizesolux.com (no paid SMS)."
         },
         {
           "value": "prod",
