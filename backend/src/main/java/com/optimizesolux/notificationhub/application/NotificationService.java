@@ -229,8 +229,12 @@ public class NotificationService {
         }
         if (request.channel() == Channel.WHATSAPP && hasTemplate) {
             String name = request.templateName();
-            // ContentSid Twilio (HX…) OK without Pebble template row
-            if (name != null && !name.startsWith("HX") && request.templateData() == null) {
+            boolean meta = OtpRequestResolver.isMetaProvider(properties);
+            // ContentSid Twilio (HX…) or Meta Cloud template name OK without Pebble row
+            if (name != null
+                    && !name.startsWith("HX")
+                    && !meta
+                    && request.templateData() == null) {
                 throw new IllegalArgumentException(
                         "WhatsApp template requires templateData, or use a Twilio ContentSid (HX…)");
             }

@@ -44,26 +44,35 @@ public final class OtpRequestResolver {
             throw new IllegalArgumentException("WhatsApp OTP must not include body; use otpCode");
         }
 
+        boolean meta = isMetaProvider(properties);
+
         String templateName = request.templateName();
         if (templateName == null || templateName.isBlank()) {
-            templateName = properties.whatsapp().otpContentSid();
+            templateName = defaultOtpTemplate(properties, meta);
         }
         if (templateName == null || templateName.isBlank()) {
             throw new OtpConfigurationException(
-                    "WhatsApp OTP requires TWILIO_WHATSAPP_OTP_CONTENT_SID or templateName (HX…)");
+                    meta
+                            ? "WhatsApp OTP requires WHATSAPP_OTP_TEMPLATE_NAME or templateName"
+                            : "WhatsApp OTP requires TWILIO_WHATSAPP_OTP_CONTENT_SID or templateName (HX…)");
         }
-        if (!templateName.startsWith("HX")) {
+        if (!meta && !templateName.startsWith("HX")) {
             throw new IllegalArgumentException(
                     "WhatsApp OTP templateName must be a Twilio ContentSid (HX…)");
         }
 
         String from = request.from();
         if (from == null || from.isBlank()) {
-            from = properties.whatsapp().defaultFrom();
+            from = properties.whatsapp() != null ? properties.whatsapp().defaultFrom() : null;
         }
-        if (from == null || from.isBlank()) {
+        if (!meta && (from == null || from.isBlank())) {
             throw new OtpConfigurationException(
                     "WhatsApp OTP requires from or TWILIO_WHATSAPP_FROM");
+        }
+        // Meta: from optional (Phone Number ID is in Graph URL); use phoneNumberId as placeholder
+        if (meta && (from == null || from.isBlank())) {
+            NotificationHubProperties.Meta m = properties.whatsapp().meta();
+            from = m != null && m.phoneNumberId() != null ? m.phoneNumberId() : "meta";
         }
 
         Map<String, Object> metadata = new HashMap<>();
@@ -86,5 +95,23 @@ public final class OtpRequestResolver {
                 request.messageType(),
                 otpCode,
                 request.environment());
+    }
+
+    static boolean isMetaProvider(NotificationHubProperties properties) {
+        if (properties.whatsapp() == null || properties.whatsapp().provider() == null) {
+            return false;
+        }
+        return "meta".equalsIgnoreCase(properties.whatsapp().provider().trim());
+    }
+
+    private static String defaultOtpTemplate(NotificationHubProperties properties, boolean meta) {
+        if (properties.whatsapp() == null) {
+            return null;
+        }
+        if (meta) {
+            NotificationHubProperties.Meta m = properties.whatsapp().meta();
+            return m != null ? m.otpTemplateName() : null;
+        }
+        return properties.whatsapp().otpContentSid();
     }
 }

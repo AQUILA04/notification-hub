@@ -3,7 +3,9 @@ package com.optimizesolux.notificationhub.application;
 import com.optimizesolux.notificationhub.api.NotFoundException;
 import com.optimizesolux.notificationhub.api.dto.NotificationResponse;
 import com.optimizesolux.notificationhub.api.dto.ReplayNotificationRequest;
+import com.optimizesolux.notificationhub.config.NotificationHubProperties;
 import com.optimizesolux.notificationhub.config.TenantContext;
+import com.optimizesolux.notificationhub.domain.Channel;
 import com.optimizesolux.notificationhub.domain.NotificationEventType;
 import com.optimizesolux.notificationhub.domain.NotificationStatus;
 import com.optimizesolux.notificationhub.infrastructure.persistence.NotificationEntity;
@@ -30,6 +32,7 @@ public class ReplayService {
     private final PebbleTemplateRenderer renderer;
     private final ChannelAvailabilityService channelAvailabilityService;
     private final AuditService auditService;
+    private final NotificationHubProperties properties;
 
     public ReplayService(
             NotificationRepository notificationRepository,
@@ -38,7 +41,8 @@ public class ReplayService {
             TemplateService templateService,
             PebbleTemplateRenderer renderer,
             ChannelAvailabilityService channelAvailabilityService,
-            AuditService auditService) {
+            AuditService auditService,
+            NotificationHubProperties properties) {
         this.notificationRepository = notificationRepository;
         this.outboxMessageRepository = outboxMessageRepository;
         this.eventStoreService = eventStoreService;
@@ -46,6 +50,7 @@ public class ReplayService {
         this.renderer = renderer;
         this.channelAvailabilityService = channelAvailabilityService;
         this.auditService = auditService;
+        this.properties = properties;
     }
 
     @Transactional
@@ -69,7 +74,10 @@ public class ReplayService {
             result.put("mode", "DRY_RUN");
             result.put("notificationId", id.toString());
             result.put("channel", entity.getChannel().name());
-            if (entity.getTemplateName() != null && !entity.getTemplateName().startsWith("HX")) {
+            if (entity.getTemplateName() != null
+                    && !entity.getTemplateName().startsWith("HX")
+                    && !(entity.getChannel() == Channel.WHATSAPP
+                            && OtpRequestResolver.isMetaProvider(properties))) {
                 TemplateEntity template =
                         templateService.requireActive(tenantId, entity.getTemplateName());
                 Map<String, Object> data =

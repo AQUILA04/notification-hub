@@ -28,7 +28,7 @@ class OtpRequestResolverTest {
                 null,
                 null,
                 new NotificationHubProperties.Whatsapp(
-                        "twilio", null, null, null, DEFAULT_FROM, CONTENT_SID),
+                        "twilio", null, null, null, DEFAULT_FROM, CONTENT_SID, null),
                 null,
                 null,
                 null,
@@ -160,7 +160,7 @@ class OtpRequestResolverTest {
                         null,
                         null,
                         new NotificationHubProperties.Whatsapp(
-                                "twilio", null, null, null, DEFAULT_FROM, null),
+                                "twilio", null, null, null, DEFAULT_FROM, null, null),
                         null,
                         null,
                         null,
@@ -198,7 +198,7 @@ class OtpRequestResolverTest {
                         null,
                         null,
                         new NotificationHubProperties.Whatsapp(
-                                "twilio", null, null, null, null, CONTENT_SID),
+                                "twilio", null, null, null, null, CONTENT_SID, null),
                         null,
                         null,
                         null,
@@ -265,5 +265,62 @@ class OtpRequestResolverTest {
 
         assertEquals("auth-service", resolved.metadata().get("appId"));
         assertEquals(MessageType.OTP.name(), resolved.metadata().get("messageType"));
+    }
+
+    @Test
+    void resolvesMetaWhatsAppOtpWithoutFrom() {
+        NotificationHubProperties metaProps =
+                new NotificationHubProperties(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        new NotificationHubProperties.Whatsapp(
+                                "meta",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                new NotificationHubProperties.Meta(
+                                        "token",
+                                        "1361333320386192",
+                                        "1429502245716883",
+                                        "1028507183525436",
+                                        "v25.0",
+                                        "secret",
+                                        "nhub-meta-wa-7f3c9e2a4b18",
+                                        "otp_login",
+                                        "fr",
+                                        "copy_code")),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null);
+
+        CreateNotificationRequest input =
+                new CreateNotificationRequest(
+                        Channel.WHATSAPP,
+                        null,
+                        List.of("+22892181351"),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        MessageType.OTP,
+                        "424242");
+
+        CreateNotificationRequest resolved = OtpRequestResolver.resolve(input, metaProps);
+
+        assertEquals("otp_login", resolved.templateName());
+        assertEquals("424242", resolved.templateData().get("1"));
+        assertEquals("1361333320386192", resolved.from());
     }
 }

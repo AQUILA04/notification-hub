@@ -45,7 +45,10 @@ Clients d’intégration (monorepo) :
 SPI providers (changer Brevo ↔ AfrikSMS / Twilio sans toucher au dispatch) :
 [backend/docs/PROVIDERS.md](backend/docs/PROVIDERS.md)
 
-WhatsApp via Twilio (P2) :
+WhatsApp Meta Cloud API :
+[backend/docs/WHATSAPP_META.md](backend/docs/WHATSAPP_META.md)
+
+WhatsApp via Twilio (legacy) :
 [backend/docs/WHATSAPP_TWILIO.md](backend/docs/WHATSAPP_TWILIO.md)
 
 Module OTP intégré (génération + vérification) :
@@ -310,12 +313,12 @@ docker-compose.yml       Local autonomous stack (PG + Redis + Artemis + Mailpit 
 - [x] Retry différé (`available_at` + priorité JMS + `_AMQ_SCHED_DELIVERY`)
 - [x] Priorités HIGH/NORMAL/LOW sur outbox → JMS
 - [x] Keycloak login cockpit (opt-in `auth.enabled`)
-- [x] WhatsApp SPI Twilio + flag `WHATSAPP_ENABLED` (défaut off → 422 CHANNEL_NOT_ENABLED)
-- [x] `GET /v1/channels` · webhook Twilio · replay DRY_RUN/RESEND
+- [x] WhatsApp SPI Twilio + Meta Cloud API + flag `WHATSAPP_ENABLED` (défaut off → 422 CHANNEL_NOT_ENABLED)
+- [x] `GET /v1/channels` · webhooks Twilio / Brevo / Meta · replay DRY_RUN/RESEND
 - [x] UI DLQ cockpit (`/dlq` · requeue / discard) + `GET/POST /v1/admin/dlq`
 - [x] Quotas Redis / circuit breakers / audit tenant / KPI coût / K8s PDB+NetworkPolicy (P3)
 
-Providers : [backend/docs/PROVIDERS.md](backend/docs/PROVIDERS.md) · WhatsApp P2 : [backend/docs/WHATSAPP_TWILIO.md](backend/docs/WHATSAPP_TWILIO.md) · P3 : [backend/docs/HARDENING.md](backend/docs/HARDENING.md)
+Providers : [backend/docs/PROVIDERS.md](backend/docs/PROVIDERS.md) · WhatsApp Meta : [backend/docs/WHATSAPP_META.md](backend/docs/WHATSAPP_META.md) · Twilio : [backend/docs/WHATSAPP_TWILIO.md](backend/docs/WHATSAPP_TWILIO.md) · P3 : [backend/docs/HARDENING.md](backend/docs/HARDENING.md)
 
 ## License
 

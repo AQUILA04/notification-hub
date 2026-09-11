@@ -41,9 +41,12 @@ Réutilise la même clé SSH que SharedTraefik / CleanTrack si possible.
 | `PROD_TWILIO_ACCOUNT_SID` | `AC…` (Console Twilio → Account Info) |
 | `PROD_TWILIO_AUTH_TOKEN` | Auth Token Twilio (Show dans Console) |
 | `PROD_TWILIO_VERIFY_SERVICE_SID` | `VA…` (Console → Verify → Services) |
+| `PROD_WHATSAPP_TOKEN` | Meta System User token (si `WHATSAPP_PROVIDER=meta`) |
+| `PROD_WHATSAPP_APP_SECRET` | Meta App Secret (HMAC webhook) |
 
 Le CD injecte ces secrets dans `/opt/notification-hub/prod/.env` à chaque déploiement (`CT_UPDATE_ENV_SECRETS=true`).
 `TWILIO_STATUS_CALLBACK_URL` est dérivé automatiquement : `https://<PROD_API_HOSTNAME>/v1/webhooks/twilio`.
+Webhook Meta : `https://<PROD_API_HOSTNAME>/v1/webhooks/meta` — voir [backend/docs/WHATSAPP_META.md](../backend/docs/WHATSAPP_META.md).
 
 SMS `environment=test` : même SMTP Resend, destinataire **sms@optimizesolux.com** (pas de second SMTP / Mailpit produit).
 

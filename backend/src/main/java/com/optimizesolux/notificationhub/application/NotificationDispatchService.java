@@ -115,8 +115,9 @@ public class NotificationDispatchService {
 
             if (entity.getChannel() == Channel.WHATSAPP
                     && entity.getTemplateName() != null
-                    && entity.getTemplateName().startsWith("HX")) {
-                // Twilio Content Template SID — pas de rendu Pebble
+                    && (entity.getTemplateName().startsWith("HX")
+                            || OtpRequestResolver.isMetaProvider(properties))) {
+                // Twilio ContentSid (HX…) or Meta template name — pas de rendu Pebble
                 body = entity.getTemplateName();
             } else if (entity.getTemplateName() != null) {
                 entity.setStatus(NotificationStatus.RENDERING);

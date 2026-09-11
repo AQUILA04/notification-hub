@@ -5,7 +5,7 @@
 | Canal | Provider | Notes |
 |-------|----------|--------|
 | **SMS** | **Brevo** | API transactionnelle — choix prod actuel |
-| **WhatsApp** | **Twilio** | Twilio sert **uniquement** WhatsApp |
+| **WhatsApp** | **Meta Cloud API** ou Twilio | Meta : `WHATSAPP_PROVIDER=meta` — voir [WHATSAPP_META.md](WHATSAPP_META.md) ; Twilio : `twilio` |
 | **EMAIL** | SMTP (SPI) | Resend en prod ; Brevo email possible plus tard |
 
 AfrikSMS reste dans le SPI (`SMS_PROVIDER=afriksms`) si besoin.
@@ -48,9 +48,10 @@ notification-hub:
 
 API : `GET …/send` (1 destinataire) · `POST …/send_multisms` (N).
 
-## WhatsApp (P2)
+## WhatsApp
 
-Voir [WHATSAPP_TWILIO.md](WHATSAPP_TWILIO.md) — `TwilioWhatsAppProvider` uniquement.
+- Meta Cloud API : [WHATSAPP_META.md](WHATSAPP_META.md) — `WHATSAPP_PROVIDER=meta`
+- Twilio : [WHATSAPP_TWILIO.md](WHATSAPP_TWILIO.md) — `TwilioWhatsAppProvider`
 
 ## Ajouter un autre SMS
 

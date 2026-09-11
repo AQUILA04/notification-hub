@@ -75,7 +75,28 @@ public record NotificationHubProperties(
             email = new Email("smtp");
         }
         if (whatsapp == null) {
-            whatsapp = new Whatsapp("twilio", null, null, null, null, null);
+            whatsapp = new Whatsapp("twilio", null, null, null, null, null, null);
+        }
+        if (whatsapp.meta() == null) {
+            whatsapp =
+                    new Whatsapp(
+                            whatsapp.provider(),
+                            whatsapp.accountSid(),
+                            whatsapp.authToken(),
+                            whatsapp.statusCallbackUrl(),
+                            whatsapp.defaultFrom(),
+                            whatsapp.otpContentSid(),
+                            new Meta(
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    "v25.0",
+                                    null,
+                                    null,
+                                    null,
+                                    "fr",
+                                    "copy_code"));
         }
         if (cors == null) {
             cors = new Cors(new String[] {"http://localhost:4200"});
@@ -162,14 +183,15 @@ public record NotificationHubProperties(
     public record Email(String provider) {}
 
     /**
-     * WhatsApp — Twilio only for P2.
+     * WhatsApp — Twilio ({@code provider=twilio}) ou Meta Cloud API ({@code provider=meta}).
      *
-     * @param provider twilio
+     * @param provider twilio | meta
      * @param accountSid Twilio SID (peut réutiliser TWILIO_ACCOUNT_SID)
      * @param authToken Twilio token
-     * @param statusCallbackUrl URL publique webhook (optionnel)
-     * @param defaultFrom numéro WhatsApp expéditeur par défaut (sandbox ou prod)
+     * @param statusCallbackUrl URL publique webhook Twilio (optionnel)
+     * @param defaultFrom numéro WhatsApp expéditeur par défaut (sandbox ou prod Twilio)
      * @param otpContentSid ContentSid Twilio (HX…) pour template whatsapp/authentication
+     * @param meta config Cloud API (token, phone number id, webhook verify, template OTP)
      */
     public record Whatsapp(
             String provider,
@@ -177,7 +199,34 @@ public record NotificationHubProperties(
             String authToken,
             String statusCallbackUrl,
             String defaultFrom,
-            String otpContentSid) {}
+            String otpContentSid,
+            Meta meta) {}
+
+    /**
+     * Meta WhatsApp Cloud API.
+     *
+     * @param token permanent System User token (secret)
+     * @param phoneNumberId Graph Phone Number ID
+     * @param wabaId WhatsApp Business Account ID
+     * @param appId Meta App ID
+     * @param graphVersion ex. v25.0
+     * @param appSecret App Secret pour HMAC X-Hub-Signature-256 (secret)
+     * @param webhookVerifyToken string secret pour handshake GET
+     * @param otpTemplateName nom du template Meta Authentication
+     * @param otpTemplateLang code langue (ex. fr)
+     * @param otpButton copy_code | none — bouton auth OTP
+     */
+    public record Meta(
+            String token,
+            String phoneNumberId,
+            String wabaId,
+            String appId,
+            String graphVersion,
+            String appSecret,
+            String webhookVerifyToken,
+            String otpTemplateName,
+            String otpTemplateLang,
+            String otpButton) {}
 
     public record Cors(String[] allowedOrigins) {}
 
