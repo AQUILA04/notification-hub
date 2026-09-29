@@ -56,6 +56,12 @@ services:
       SMTP_PASSWORD: ${MAIL_PASS:-}
       SMTP_AUTH: "true"
       SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      # Port 465 = TLS implicite (SMTPS) : sans ssl.enable le client attend un accueil SMTP en clair et bloque
+      # indéfiniment les listeners JMS (messages figés en QUEUED). SMTP_SSL=false si port 587 + SMTP_STARTTLS=true.
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE: ${SMTP_SSL:-true}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT: ${SMTP_CONNECTION_TIMEOUT_MS:-10000}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT: ${SMTP_TIMEOUT_MS:-15000}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT: ${SMTP_TIMEOUT_MS:-15000}
       # SMS test intercept (environment ≠ prod) — même SMTP Resend, boîte recette
       SMS_TEST_MAIL_FROM: ${SMS_TEST_MAIL_FROM:-noreply@optimizesolux.com}
       SMS_TEST_MAIL_TO: ${SMS_TEST_MAIL_TO:-sms@optimizesolux.com}
