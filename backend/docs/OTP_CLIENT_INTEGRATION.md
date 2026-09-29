@@ -124,19 +124,27 @@ Demande l’envoi d’un code OTP au numéro indiqué.
   "expiresAt": "2026-08-31T20:26:00Z",
   "notificationId": null,
   "channel": "SMS",
-  "provider": "twilio-verify",
-  "providerReference": "VEaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  "provider": "internal",
+  "providerReference": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "reference": "Y4GP"
 }
 ```
 
 | Champ | Description |
 |-------|-------------|
 | `sessionId` | Identifiant de session côté hub (utile avec le provider `internal`) |
-| `expiresAt` | Expiration indicative (~10 min avec Twilio Verify) |
+| `expiresAt` | Expiration indicative (~5 min avec provider `internal`, ~10 min avec Twilio Verify) |
 | `notificationId` | ID notification hub si provider `internal` ; `null` avec Twilio Verify |
 | `channel` | Canal effectivement utilisé |
 | `provider` | `twilio-verify` ou `internal` |
-| `providerReference` | Référence Twilio (`VE…`) — pour le support / logs, pas pour la vérif côté client |
+| `providerReference` | Référence Twilio (`VE…`) ou session interne — pour le support / logs, pas pour la vérif côté client |
+| `reference` | Référence courte alphanumérique (ex. `Y4GP`) générée par le hub (provider `internal`) pour distinguer les SMS en cas de renvois. **Affichez-la** : « Saisissez le code à 6 chiffres associé à la référence Y4GP ». `null` avec Twilio Verify (le SMS est rédigé par Twilio). WhatsApp : renvoyée mais absente du template message. |
+
+Le SMS (provider `internal`) contient aussi cette référence via le placeholder `{{reference}}` du template (`OTP_SMS_BODY_TEMPLATE`). Exemple par défaut :
+
+`Votre code de verification est 131584 (ref. Y4GP). Valide 5 minutes.`
+
+En environnement `test`, la copie email vers `sms@optimizesolux.com` reprend ce corps (référence incluse).
 
 ### Exemple curl (prod)
 
@@ -323,7 +331,7 @@ Renouvelez le JWT avant expiration (typiquement 5–15 min selon la config realm
 1. **Format E.164** — normaliser le numéro côté app (`+228…`) avant l’appel.
 2. **Idempotency-Key** — un UUID par clic « Envoyer le code » ; réutiliser la même clé seulement en cas de retry réseau identique.
 3. **Ne jamais logger le code OTP** ni le renvoyer au frontend depuis votre backend.
-4. **UX verify** — distinguer `INVALID` (réessayer) et `EXPIRED` (renvoyer).
+4. **UX verify** — distinguer `INVALID` (réessayer) et `EXPIRED` (renvoyer). Afficher la `reference` renvoyée par `/send` pour guider l'utilisateur vers le bon SMS.
 5. **Rate limiting UX** — limiter les clics « Renvoyer » côté UI (ex. 60 s) même si le hub autorise plus.
 6. **Tenant** — une app = un client Keycloak = un `tenant_id` ; ne pas mélanger les tenants.
 7. **Canal** — en prod actuelle le défaut est **SMS** ; passer `"channel": "WHATSAPP"` uniquement quand le sender WhatsApp prod est validé par la plateforme.

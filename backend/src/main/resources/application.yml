@@ -141,7 +141,8 @@ notification-hub:
     max-verify-attempts: ${OTP_MAX_VERIFY_ATTEMPTS:5}
     resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
     default-channel: ${OTP_DEFAULT_CHANNEL:SMS}
-    sms-body-template: ${OTP_SMS_BODY_TEMPLATE:Votre code de verification est {{code}}. Valide {{ttlMinutes}} minutes.}
+    reference-length: ${OTP_REFERENCE_LENGTH:4}
+    sms-body-template: ${OTP_SMS_BODY_TEMPLATE:Votre code de verification est {{code}} (ref. {{reference}}). Valide {{ttlMinutes}} minutes.}
 
 logging:
   level:

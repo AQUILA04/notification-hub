@@ -11,11 +11,24 @@ public record OtpSendResponse(
         UUID notificationId,
         Channel channel,
         String provider,
-        String providerReference) {
+        String providerReference,
+        /** Référence courte (ex. Y4GP) pour distinguer les SMS OTP — null si non applicable (Twilio Verify). */
+        String reference) {
 
     /** Backward-compatible constructor without provider metadata. */
     public OtpSendResponse(
             UUID sessionId, Instant expiresAt, UUID notificationId, Channel channel) {
-        this(sessionId, expiresAt, notificationId, channel, null, null);
+        this(sessionId, expiresAt, notificationId, channel, null, null, null);
+    }
+
+    /** Backward-compatible constructor without OTP display reference. */
+    public OtpSendResponse(
+            UUID sessionId,
+            Instant expiresAt,
+            UUID notificationId,
+            Channel channel,
+            String provider,
+            String providerReference) {
+        this(sessionId, expiresAt, notificationId, channel, provider, providerReference, null);
     }
 }

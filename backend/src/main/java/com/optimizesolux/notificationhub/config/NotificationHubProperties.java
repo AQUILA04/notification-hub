@@ -125,7 +125,8 @@ public record NotificationHubProperties(
                             5,
                             60,
                             "SMS",
-                            "Votre code de verification est {{code}}. Valide {{ttlMinutes}} minutes.");
+                            4,
+                            "Votre code de verification est {{code}} (ref. {{reference}}). Valide {{ttlMinutes}} minutes.");
         }
     }
 
@@ -265,7 +266,8 @@ public record NotificationHubProperties(
      * @param maxVerifyAttempts tentatives verify (provider internal uniquement)
      * @param resendCooldownSeconds cooldown renvoi (provider internal uniquement)
      * @param defaultChannel WHATSAPP ou SMS
-     * @param smsBodyTemplate corps SMS internal provider
+     * @param referenceLength longueur de la référence affichable (provider internal)
+     * @param smsBodyTemplate corps SMS internal provider ({@code {{code}}}, {@code {{ttlMinutes}}}, {@code {{reference}}})
      */
     public record Otp(
             boolean enabled,
@@ -279,5 +281,6 @@ public record NotificationHubProperties(
             int maxVerifyAttempts,
             int resendCooldownSeconds,
             String defaultChannel,
+            int referenceLength,
             String smsBodyTemplate) {}
 }

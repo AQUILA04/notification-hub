@@ -15,6 +15,7 @@ import com.optimizesolux.notificationhub.otp.api.dto.OtpVerifyRequest;
 import com.optimizesolux.notificationhub.otp.api.dto.OtpVerifyResponse;
 import com.optimizesolux.notificationhub.otp.application.OtpCodeGenerator;
 import com.optimizesolux.notificationhub.otp.application.OtpHasher;
+import com.optimizesolux.notificationhub.otp.application.OtpReferenceGenerator;
 import com.optimizesolux.notificationhub.otp.application.PhoneNormalizer;
 import com.optimizesolux.notificationhub.otp.domain.OtpSession;
 import com.optimizesolux.notificationhub.otp.domain.OtpVerifyReason;
@@ -74,6 +75,7 @@ public class InternalOtpProvider implements OtpProvider {
         }
 
         String code = OtpCodeGenerator.generate(otpConfig.length());
+        String reference = OtpReferenceGenerator.generate(otpConfig.referenceLength());
         UUID sessionId = UUID.randomUUID();
         Instant expiresAt = Instant.now().plus(ttl);
         String codeHash = OtpHasher.hash(tenantId, destination, code);
@@ -90,9 +92,11 @@ public class InternalOtpProvider implements OtpProvider {
         }
         metadata.put("otpSessionId", sessionId.toString());
         metadata.put("messageType", MessageType.OTP.name());
+        metadata.put("otpReference", reference);
 
         CreateNotificationRequest notification =
-                buildNotificationRequest(channel, destination, code, metadata, otpConfig, environment);
+                buildNotificationRequest(
+                        channel, destination, code, reference, metadata, otpConfig, environment);
         NotificationResponse sent =
                 notificationService.create(notification, idempotencyKey, appIdHeader);
 
@@ -100,10 +104,18 @@ public class InternalOtpProvider implements OtpProvider {
                 tenantId,
                 "OTP_SEND",
                 sessionId.toString(),
-                Map.of("channel", channel.name(), "destination", mask(destination), "provider", id()));
+                Map.of(
+                        "channel",
+                        channel.name(),
+                        "destination",
+                        mask(destination),
+                        "provider",
+                        id(),
+                        "reference",
+                        reference));
 
         return new OtpSendResponse(
-                sessionId, expiresAt, sent.id(), channel, id(), sessionId.toString());
+                sessionId, expiresAt, sent.id(), channel, id(), sessionId.toString(), reference);
     }
 
     public boolean hasActiveSession(OtpVerifyRequest request) {
@@ -171,10 +183,13 @@ public class InternalOtpProvider implements OtpProvider {
             Channel channel,
             String destination,
             String code,
+            String reference,
             Map<String, Object> metadata,
             NotificationHubProperties.Otp otpConfig,
             NotificationEnvironment environment) {
         if (channel == Channel.WHATSAPP) {
+            // Les templates WhatsApp n'incluent pas {{reference}} ; la référence est
+            // quand même renvoyée dans OtpSendResponse pour l'affichage côté app.
             return new CreateNotificationRequest(
                     Channel.WHATSAPP,
                     null,
@@ -194,7 +209,8 @@ public class InternalOtpProvider implements OtpProvider {
                 otpConfig
                         .smsBodyTemplate()
                         .replace("{{code}}", code)
-                        .replace("{{ttlMinutes}}", String.valueOf(otpConfig.ttlSeconds() / 60));
+                        .replace("{{ttlMinutes}}", String.valueOf(otpConfig.ttlSeconds() / 60))
+                        .replace("{{reference}}", reference);
         String from = properties.sms().defaultFrom();
         return new CreateNotificationRequest(
                 Channel.SMS,

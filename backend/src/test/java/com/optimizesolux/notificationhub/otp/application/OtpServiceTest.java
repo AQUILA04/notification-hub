@@ -84,7 +84,8 @@ class OtpServiceTest {
                         5,
                         60,
                         "SMS",
-                        "Code {{code}}"));
+                        4,
+                        "Code {{code}} (ref. {{reference}})"));
     }
 
     private static OtpSendResponse sampleResponse() {

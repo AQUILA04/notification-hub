@@ -105,7 +105,8 @@ public class TwilioVerifyOtpProvider implements OtpProvider {
                 null,
                 channel,
                 id(),
-                verificationSid);
+                verificationSid,
+                null);
     }
 
     @Override

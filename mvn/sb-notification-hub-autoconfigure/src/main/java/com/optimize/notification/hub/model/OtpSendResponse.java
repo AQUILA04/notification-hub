@@ -9,4 +9,6 @@ public record OtpSendResponse(
         UUID notificationId,
         Channel channel,
         String provider,
-        String providerReference) {}
+        String providerReference,
+        /** Référence courte affichable (ex. Y4GP) — null si le provider ne la fournit pas. */
+        String reference) {}

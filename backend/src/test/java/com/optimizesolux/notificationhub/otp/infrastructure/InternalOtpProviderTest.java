@@ -92,11 +92,17 @@ class InternalOtpProviderTest {
 
         assertEquals(Channel.SMS, response.channel());
         assertEquals("internal", response.provider());
+        assertEquals(4, response.reference().length());
+        assertTrue(
+                response.reference().chars().allMatch(c ->
+                        "ABCDEFGHJKMNPQRSTUVWXYZ23456789".indexOf(c) >= 0));
 
         ArgumentCaptor<CreateNotificationRequest> captor =
                 ArgumentCaptor.forClass(CreateNotificationRequest.class);
         verify(notificationService).create(captor.capture(), eq(null), eq(null));
         assertTrue(captor.getValue().body().contains(captor.getValue().otpCode()));
+        assertTrue(captor.getValue().body().contains(response.reference()));
+        assertEquals(response.reference(), captor.getValue().metadata().get("otpReference"));
     }
 
     private static NotificationHubProperties properties() {
@@ -126,6 +132,7 @@ class InternalOtpProviderTest {
                         5,
                         60,
                         "SMS",
-                        "Code {{code}}"));
+                        4,
+                        "Code {{code}} (ref. {{reference}})"));
     }
 }
