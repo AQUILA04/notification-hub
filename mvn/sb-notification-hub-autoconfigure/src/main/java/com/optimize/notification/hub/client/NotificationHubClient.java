@@ -45,7 +45,7 @@ public interface NotificationHubClient {
     /**
      * Generates an OTP, stores it server-side, and dispatches it (WhatsApp or SMS).
      * SMS uses the client environment ({@code test} by default): non-prod traffic is emailed to
-     * {@code sms@optimizesolux.com} instead of a paid SMS provider.
+     * the SMS test distribution list instead of a paid SMS provider.
      */
     OtpSendResponse sendOtp(OtpSendRequest request);
 

@@ -80,7 +80,7 @@
       "values": [
         {
           "value": "test",
-          "description": "Email the SMS to sms@optimizesolux.com (no paid SMS)."
+          "description": "Email the SMS to the SMS test distribution list (no paid SMS)."
         },
         {
           "value": "prod",

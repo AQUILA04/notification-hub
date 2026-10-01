@@ -22,6 +22,7 @@ import { TenantStore } from '../core/tenant.store';
           <a routerLink="/notifications" routerLinkActive="active">Notifications</a>
           <a routerLink="/dlq" routerLinkActive="active">DLQ</a>
           <a routerLink="/templates" routerLinkActive="active">Templates</a>
+          <a routerLink="/sms-test" routerLinkActive="active">SMS test</a>
         </nav>
         <label class="tenant">
           Tenant

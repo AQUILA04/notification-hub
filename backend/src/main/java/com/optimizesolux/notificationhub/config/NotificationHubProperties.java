@@ -165,7 +165,8 @@ public record NotificationHubProperties(
      * paid SMS provider.
      *
      * @param mailFrom expéditeur SMTP (domaine vérifié Resend en prod)
-     * @param mailTo boîte de recette (défaut {@code sms@optimizesolux.com})
+     * @param mailTo boîte de repli si la liste de diffusion SMS test est vide (défaut
+     *     {@code sms@optimizesolux.com})
      */
     public record SmsTest(String mailFrom, String mailTo) {}
 

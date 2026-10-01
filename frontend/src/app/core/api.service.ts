@@ -8,6 +8,7 @@ import {
   NotificationItem,
   NotificationStatus,
   PageResponse,
+  SmsTestRecipient,
   TemplateItem,
 } from './models';
 import { environment } from '../../environments/environment';
@@ -85,5 +86,19 @@ export class ApiService {
 
   discardDlq(id: string): Observable<NotificationItem> {
     return this.http.post<NotificationItem>(`${this.base}/v1/admin/dlq/${id}/discard`, {});
+  }
+
+  listSmsTestRecipients(): Observable<SmsTestRecipient[]> {
+    return this.http.get<SmsTestRecipient[]>(`${this.base}/v1/admin/sms-test-recipients`);
+  }
+
+  addSmsTestRecipient(email: string): Observable<SmsTestRecipient> {
+    return this.http.post<SmsTestRecipient>(`${this.base}/v1/admin/sms-test-recipients`, {
+      email,
+    });
+  }
+
+  removeSmsTestRecipient(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/v1/admin/sms-test-recipients/${id}`);
   }
 }
