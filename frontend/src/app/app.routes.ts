@@ -35,6 +35,13 @@ export const routes: Routes = [
         path: 'dlq',
         loadComponent: () => import('./pages/dlq/dlq.page').then((m) => m.DlqPage),
       },
+      {
+        path: 'sms-test',
+        loadComponent: () =>
+          import('./pages/sms-test/sms-test-recipients.page').then(
+            (m) => m.SmsTestRecipientsPage,
+          ),
+      },
     ],
   },
 ];

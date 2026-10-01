@@ -60,6 +60,13 @@ export interface TemplateItem {
   createdAt: string;
 }
 
+export interface SmsTestRecipient {
+  id: string;
+  email: string;
+  createdAt: string;
+  createdBy: string | null;
+}
+
 export interface KpiResponse {
   windowHours: number;
   total: number;

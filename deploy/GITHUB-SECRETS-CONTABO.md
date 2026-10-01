@@ -48,7 +48,7 @@ Le CD injecte ces secrets dans `/opt/notification-hub/prod/.env` à chaque dépl
 `TWILIO_STATUS_CALLBACK_URL` est dérivé automatiquement : `https://<PROD_API_HOSTNAME>/v1/webhooks/twilio`.
 Webhook Meta : `https://<PROD_API_HOSTNAME>/v1/webhooks/meta` — voir [backend/docs/WHATSAPP_META.md](../backend/docs/WHATSAPP_META.md).
 
-SMS `environment=test` : même SMTP Resend, destinataire **sms@optimizesolux.com** (pas de second SMTP / Mailpit produit).
+SMS `environment=test` : même SMTP Resend, destinataires = **liste de diffusion SMS test** (cockpit → **SMS test** ; défaut seed : **sms@optimizesolux.com**, **ahonsueric01@gmail.com** ; repli `SMS_TEST_MAIL_TO` si liste vide — pas de second SMTP / Mailpit produit).
 
 Créer aussi l’**environment** GitHub Actions nommé `prod` (approvals optionnels).
 

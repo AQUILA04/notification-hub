@@ -9,9 +9,8 @@ import java.util.Locale;
  * Client-declared delivery environment for paid channels (SMS).
  *
  * <p>{@code prod} sends a real SMS. Any other value (including omitted) is treated as
- * {@code test}: the payload is emailed to {@code sms@optimizesolux.com} via the hub SMTP
+ * {@code test}: the payload is emailed to the SMS test distribution list via the hub SMTP
  * (Mailpit locally, Resend in prod) instead of consuming SMS credits.
- * credits.
  */
 public enum NotificationEnvironment {
     TEST,
